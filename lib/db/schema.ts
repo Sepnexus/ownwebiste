@@ -125,6 +125,108 @@ export const portfolioEntries = pgTable(
 );
 
 /**
+ * subscriptions — one row per (customer × Razorpay subscription).
+ * Source of truth for status is what comes back from Razorpay webhooks.
+ */
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    planId: uuid("plan_id")
+      .notNull()
+      .references(() => pricingPlans.id, { onDelete: "restrict" }),
+    period: text("period").notNull(), // 'monthly' | 'yearly'
+
+    razorpaySubscriptionId: text("razorpay_subscription_id"),
+    razorpayCustomerId: text("razorpay_customer_id"),
+    razorpayPlanId: text("razorpay_plan_id"),
+
+    // created | authenticated | active | pending | paused | halted | cancelled | completed | expired
+    status: text("status").notNull().default("created"),
+
+    currentPeriodStart: timestamp("current_period_start", { withTimezone: true }),
+    currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+
+    cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+
+    metadata: jsonb("metadata"),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("subscriptions_razorpay_uniq").on(t.razorpaySubscriptionId),
+    index("subscriptions_user_idx").on(t.userId, t.status),
+    index("subscriptions_status_idx").on(t.status),
+  ],
+);
+
+/**
+ * invoices — billing history. One row per Razorpay invoice (per period).
+ */
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    subscriptionId: uuid("subscription_id")
+      .notNull()
+      .references(() => subscriptions.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+
+    razorpayInvoiceId: text("razorpay_invoice_id"),
+    razorpayPaymentId: text("razorpay_payment_id"),
+    razorpayOrderId: text("razorpay_order_id"),
+
+    amountCents: integer("amount_cents").notNull(),
+    currency: text("currency").notNull().default("USD"),
+    // pending | paid | failed | refunded | partially_refunded
+    status: text("status").notNull().default("pending"),
+
+    periodStart: timestamp("period_start", { withTimezone: true }),
+    periodEnd: timestamp("period_end", { withTimezone: true }),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("invoices_razorpay_uniq").on(t.razorpayInvoiceId),
+    index("invoices_subscription_idx").on(t.subscriptionId, t.createdAt),
+    index("invoices_user_idx").on(t.userId, t.createdAt),
+  ],
+);
+
+/**
+ * webhook_events — raw audit log of every webhook we received.
+ * Acts as both a replay buffer and an idempotency check.
+ */
+export const webhookEvents = pgTable(
+  "webhook_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    source: text("source").notNull(), // 'razorpay'
+    eventType: text("event_type").notNull(),
+    razorpayEventId: text("razorpay_event_id"),
+    payload: jsonb("payload").notNull(),
+    signature: text("signature"),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+    error: text("error"),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("webhook_events_razorpay_uniq").on(t.razorpayEventId),
+    index("webhook_events_received_idx").on(t.receivedAt),
+    index("webhook_events_type_idx").on(t.eventType),
+  ],
+);
+
+/**
  * auth_tokens — single-use tokens for invite acceptance and password reset.
  * Token is stored as a sha256 hash so a DB leak doesn't expose live tokens.
  */
@@ -149,6 +251,12 @@ export const authTokens = pgTable(
 
 export type AuthToken = typeof authTokens.$inferSelect;
 export type NewAuthToken = typeof authTokens.$inferInsert;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type NewSubscription = typeof subscriptions.$inferInsert;
+export type Invoice = typeof invoices.$inferSelect;
+export type NewInvoice = typeof invoices.$inferInsert;
+export type WebhookEvent = typeof webhookEvents.$inferSelect;
+export type NewWebhookEvent = typeof webhookEvents.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Contact = typeof contacts.$inferSelect;

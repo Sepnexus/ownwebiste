@@ -3,6 +3,7 @@ import Link from "next/link";
 import { db, schema } from "@/lib/db";
 import { asc } from "drizzle-orm";
 import { deletePlan, toggleVisibility } from "./_actions";
+import SyncRazorpay from "./_components/SyncRazorpay";
 
 export const metadata: Metadata = { title: "Admin · Pricing" };
 export const dynamic = "force-dynamic";
@@ -39,7 +40,8 @@ export default async function AdminPricingPage() {
               <th style={{ width: 130, textAlign: "right" }}>Monthly</th>
               <th style={{ width: 130, textAlign: "right" }}>Yearly</th>
               <th style={{ width: 100 }}>Status</th>
-              <th style={{ width: 220, textAlign: "right" }}>Actions</th>
+              <th style={{ width: 130 }}>Razorpay</th>
+              <th style={{ width: 320, textAlign: "right" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -78,7 +80,17 @@ export default async function AdminPricingPage() {
                   )}
                 </td>
                 <td>
+                  {p.razorpayPlanIdMonthly && p.razorpayPlanIdYearly ? (
+                    <span className="pill live">Synced</span>
+                  ) : p.razorpayPlanIdMonthly || p.razorpayPlanIdYearly ? (
+                    <span className="pill draft">Partial</span>
+                  ) : (
+                    <span className="pill draft">Not synced</span>
+                  )}
+                </td>
+                <td>
                   <div className="row-actions">
+                    <SyncRazorpay planId={p.id} />
                     <form action={toggleVisibility}>
                       <input type="hidden" name="id" value={p.id} />
                       <button type="submit" className="btn btn-outline" style={{ padding: "6px 10px", fontSize: 12 }}>

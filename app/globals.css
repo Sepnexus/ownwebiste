@@ -366,6 +366,102 @@
   line-height: 1.6;
 }
 
+/* ============== Customer dashboard shell ============== */
+
+.dash-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(246, 243, 236, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px var(--pad);
+}
+.dash-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 18px;
+  letter-spacing: -0.005em;
+}
+.dash-brand .tag {
+  font-family: var(--mono);
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-left: 6px;
+}
+.dash-nav-links {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+.dash-nav-links a {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.dash-nav-links a:hover {
+  background: rgba(20, 17, 16, 0.05);
+  color: var(--ink);
+}
+.dash-nav-cta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.dash-user {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+.dash-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 56px var(--pad) 80px;
+}
+.dash-main h1 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(32px, 4vw, 52px);
+  letter-spacing: -0.018em;
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+.dash-main h1 em {
+  font-style: italic;
+  background: linear-gradient(90deg, var(--c-magenta), var(--c-orange), var(--c-yellow));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.dash-main h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 26px;
+  letter-spacing: -0.012em;
+  margin: 40px 0 16px;
+  color: var(--ink);
+}
+.dash-main .lede-row {
+  margin: 0 0 32px;
+  color: var(--muted);
+  font-size: 16px;
+}
+
 /* ============== Admin shell ============== */
 
 .admin-shell {

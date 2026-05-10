@@ -207,6 +207,69 @@ curl -I https://www.sepnexus.com/   # should be 301 → https://sepnexus.com/
 
 ---
 
+## Razorpay configuration (Phase 3)
+
+The schema, API and admin UI for subscriptions are in place. Before customers
+can actually pay, do these one-time steps inside Razorpay's dashboard.
+
+### 1. Enable international + USD subscriptions
+
+Account → Profile → International Payments must be enabled (already is on
+Akshay's account). Confirm USD is in the supported currencies list.
+
+### 2. Configure the webhook
+
+Razorpay Dashboard → Settings → Webhooks → **+ Add new webhook**:
+
+- **URL:** `https://sepnexus.com/api/billing/webhook` (or
+  `https://sepnexus.srv844822.hstgr.cloud/api/billing/webhook` while staging)
+- **Active events** (tick all of these):
+  - `subscription.activated`
+  - `subscription.charged`
+  - `subscription.completed`
+  - `subscription.cancelled`
+  - `subscription.halted`
+  - `subscription.paused`
+  - `subscription.resumed`
+  - `subscription.pending`
+  - `subscription.authenticated`
+  - `subscription.expired`
+  - `invoice.paid`
+  - `payment.failed`
+- **Secret:** Razorpay generates one — copy it. Paste into `.env` as
+  `RAZORPAY_WEBHOOK_SECRET`, then `docker compose up -d` to reload.
+
+> Verification: Razorpay sends a test ping. The corresponding row should
+> appear in the `webhook_events` table within seconds.
+
+### 3. Sync your pricing plans to Razorpay
+
+After deploying, sign in as admin → /admin/pricing → click **"Sync to
+Razorpay"** on each plan you want customers to be able to subscribe to. The
+button calls `/api/admin/billing/sync-plan`, which creates the matching plan
+in Razorpay (monthly + yearly) and stores the IDs back on the row.
+
+The "Synced" / "Partial" / "Not synced" pill on each row tells you the state.
+Plans that aren't fully synced will show "Coming soon" on the customer
+dashboard instead of a Subscribe button.
+
+### 4. Going from test to live
+
+When you're ready to take real money:
+
+- Razorpay Dashboard → flip **Test Mode → Live Mode**.
+- Generate live API keys: Settings → API Keys → Generate.
+- Update `.env` on the VPS:
+  ```
+  RAZORPAY_KEY_ID=rzp_live_xxx
+  RAZORPAY_KEY_SECRET=xxx
+  RAZORPAY_WEBHOOK_SECRET=<from the LIVE webhook you reconfigure>
+  ```
+- Truncate `pricing_plans` (or just clear the `razorpay_plan_id_*` columns)
+  so admin re-syncs against live mode. Test-mode plans aren't valid in live.
+
+---
+
 ## Updating later
 
 ```bash

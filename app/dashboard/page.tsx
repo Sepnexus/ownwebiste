@@ -7,6 +7,8 @@ import { asc, eq, desc } from "drizzle-orm";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import PlansGrid from "@/components/dashboard/PlansGrid";
 import SubscriptionPanel from "@/components/dashboard/SubscriptionPanel";
+import UsagePanel from "@/components/dashboard/UsagePanel";
+import { getCurrentUsageForUser } from "@/lib/usage";
 
 export const metadata: Metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
@@ -78,6 +80,8 @@ export default async function DashboardPage({
 
       {hasLiveSubscription && activeSub.plan ? (
         <>
+          <UsagePanelWrapper userId={user.id} />
+          <div style={{ height: 24 }} />
           <SubscriptionPanel
             subscriptionId={activeSub.sub.id}
             status={activeSub.sub.status}
@@ -116,5 +120,20 @@ export default async function DashboardPage({
         />
       )}
     </DashboardShell>
+  );
+}
+
+async function UsagePanelWrapper({ userId }: { userId: string }) {
+  const { counter } = await getCurrentUsageForUser(userId);
+  if (!counter) return null;
+  return (
+    <UsagePanel
+      used={counter.executionsUsed}
+      included={counter.executionsIncluded}
+      overageUsdPer1k={counter.overageUsdPer1k}
+      periodStart={counter.periodStart}
+      periodEnd={counter.periodEnd}
+      lastEventAt={counter.lastEventAt}
+    />
   );
 }

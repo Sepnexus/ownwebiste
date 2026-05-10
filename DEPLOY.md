@@ -81,7 +81,10 @@ EMAIL_REPLY_TO=akshay@sepnexus.com
 
 RAZORPAY_KEY_ID=rzp_test_Snd39z8iCBdtph
 RAZORPAY_KEY_SECRET=IlSChkjhYevOtBz56BFGmWQj
-RAZORPAY_WEBHOOK_SECRET=set-in-phase-4
+RAZORPAY_WEBHOOK_SECRET=<from Razorpay dashboard, see step 6>
+
+USAGE_INGEST_SECRET=<run: openssl rand -base64 32>
+CRON_SECRET=<run: openssl rand -base64 32>
 
 RUN_MIGRATIONS_ON_BOOT=1
 ```
@@ -253,7 +256,44 @@ The "Synced" / "Partial" / "Not synced" pill on each row tells you the state.
 Plans that aren't fully synced will show "Coming soon" on the customer
 dashboard instead of a Subscribe button.
 
-### 4. Going from test to live
+### 4. Set up the period-close cron
+
+Phase 4 introduces an hourly cron that closes ended billing periods and
+posts overage charges to Razorpay. Set `CRON_SECRET` in `.env` (32+ random
+chars), then add this cron entry on the VPS:
+
+```bash
+# Install
+echo 'CRON_SECRET=<paste-the-secret-here>' > /etc/sepnexus.cron.env
+cat > /etc/cron.d/sepnexus-period-close <<'EOF'
+0 * * * * root . /etc/sepnexus.cron.env && curl -s -X POST -H "Authorization: Bearer ${CRON_SECRET}" https://sepnexus.com/api/cron/period-close >> /var/log/sepnexus-cron.log 2>&1
+EOF
+chmod 600 /etc/sepnexus.cron.env
+```
+
+Tail the log to verify it runs:
+
+```bash
+tail -f /var/log/sepnexus-cron.log
+```
+
+You can trigger it manually any time:
+
+```bash
+. /etc/sepnexus.cron.env && curl -s -X POST -H "Authorization: Bearer $CRON_SECRET" https://sepnexus.com/api/cron/period-close
+```
+
+Response shape: `{"ok":true,"closed":N,"charged":M,"errors":[…]}`.
+
+### 5. Wire n8n to usage tracking
+
+See [docs/n8n-integration.md](docs/n8n-integration.md) for the full guide.
+TL;DR: configure n8n's "Workflow finished" lifecycle webhook (or a tail
+node in workflow templates) to POST to `/api/usage/exec` with a Bearer
+`USAGE_INGEST_SECRET`. Tag each customer's workflows with `customer:<uuid>`
+on the shared instance so the reporter knows who to bill.
+
+### 6. Going from test to live
 
 When you're ready to take real money:
 

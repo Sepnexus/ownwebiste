@@ -203,6 +203,88 @@ export const invoices = pgTable(
 );
 
 /**
+ * usage_events — raw record of every metered event we receive
+ * (one row per n8n execution, API call, etc.). Used both as an
+ * audit log and as the source of truth for the usage counters.
+ *
+ * Idempotent on (userId, externalId): if the same n8n execution
+ * fires the lifecycle webhook twice, we keep only one row.
+ */
+export const usageEvents = pgTable(
+  "usage_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    subscriptionId: uuid("subscription_id").references(() => subscriptions.id, {
+      onDelete: "set null",
+    }),
+
+    kind: text("kind").notNull().default("execution"),
+    source: text("source").notNull(), // 'shared-n8n' | 'dedicated-n8n' | 'manual'
+    externalId: text("external_id"), // n8n execution id (for dedupe)
+
+    workflowId: text("workflow_id"),
+    workflowName: text("workflow_name"),
+    status: text("status"), // success | error | canceled
+    durationMs: integer("duration_ms"),
+
+    meta: jsonb("meta"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("usage_events_external_uniq").on(t.userId, t.externalId),
+    index("usage_events_user_time_idx").on(t.userId, t.occurredAt),
+    index("usage_events_subscription_idx").on(t.subscriptionId),
+  ],
+);
+
+/**
+ * usage_counters — one row per (user × billing period). Aggregates
+ * `executions_used` from `usage_events`. We snapshot the plan limits
+ * at period start so mid-period plan edits don't retroactively change
+ * overage math. Period-close fields populated by /api/cron/period-close.
+ */
+export const usageCounters = pgTable(
+  "usage_counters",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    subscriptionId: uuid("subscription_id")
+      .notNull()
+      .references(() => subscriptions.id, { onDelete: "cascade" }),
+
+    periodStart: timestamp("period_start", { withTimezone: true }).notNull(),
+    periodEnd: timestamp("period_end", { withTimezone: true }).notNull(),
+
+    executionsUsed: integer("executions_used").notNull().default(0),
+    executionsIncluded: integer("executions_included").notNull().default(0),
+    overageUsdPer1k: integer("overage_usd_per_1k"),
+
+    warning80SentAt: timestamp("warning_80_sent_at", { withTimezone: true }),
+    warning100SentAt: timestamp("warning_100_sent_at", { withTimezone: true }),
+
+    overageUnits: integer("overage_units"),
+    overageCents: integer("overage_cents"),
+    razorpayAddonId: text("razorpay_addon_id"),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+
+    lastEventAt: timestamp("last_event_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("usage_counters_user_period_uniq").on(t.userId, t.periodStart),
+    index("usage_counters_period_end_idx").on(t.periodEnd, t.closedAt),
+    index("usage_counters_subscription_idx").on(t.subscriptionId),
+  ],
+);
+
+/**
  * webhook_events — raw audit log of every webhook we received.
  * Acts as both a replay buffer and an idempotency check.
  */
@@ -257,6 +339,10 @@ export type Invoice = typeof invoices.$inferSelect;
 export type NewInvoice = typeof invoices.$inferInsert;
 export type WebhookEvent = typeof webhookEvents.$inferSelect;
 export type NewWebhookEvent = typeof webhookEvents.$inferInsert;
+export type UsageEvent = typeof usageEvents.$inferSelect;
+export type NewUsageEvent = typeof usageEvents.$inferInsert;
+export type UsageCounter = typeof usageCounters.$inferSelect;
+export type NewUsageCounter = typeof usageCounters.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Contact = typeof contacts.$inferSelect;

@@ -179,6 +179,48 @@ export async function cancelSubscription(
   });
 }
 
+/* ============== Subscription addons (overage billing) ============== */
+
+export type RzpAddon = {
+  id: string;
+  entity: "addon";
+  item: {
+    id: string;
+    name: string;
+    amount: number;
+    currency: string;
+    description?: string;
+  };
+  quantity: number;
+  subscription_id: string;
+  invoice_id: string | null;
+  status: string;
+  created_at: number;
+};
+
+/**
+ * Add a one-time charge to a subscription's NEXT invoice.
+ * Used to bill execution overage at period close.
+ */
+export async function createSubscriptionAddon(args: {
+  subscriptionId: string;
+  name: string;
+  amountCents: number;
+  currency?: "USD" | "INR";
+  description?: string;
+  quantity?: number;
+}): Promise<RzpAddon> {
+  return rzp<RzpAddon>("POST", `/subscriptions/${args.subscriptionId}/addons`, {
+    item: {
+      name: args.name,
+      amount: args.amountCents,
+      currency: args.currency ?? "USD",
+      description: args.description,
+    },
+    quantity: args.quantity ?? 1,
+  });
+}
+
 /* ============== Webhook signature verification ============== */
 
 /**

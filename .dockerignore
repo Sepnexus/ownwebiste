@@ -1,13 +1,14 @@
 **/node_modules
-**/dist
+**/.next
 **/.git
 **/.env
 **/.env.*
 !**/.env.example
 **/.DS_Store
 **/*.log
-**/.vite
+**/.vercel
 **/.vscode
 **/.idea
+**/.claude
 README.md
 DEPLOY.md

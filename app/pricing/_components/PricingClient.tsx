@@ -1,0 +1,166 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import type { PricingPlan } from "@/lib/db/schema";
+
+const CATEGORY_META: Record<
+  string,
+  { title: string; subtitle: string; accent: string }
+> = {
+  n8n: {
+    title: "Managed n8n automation",
+    subtitle:
+      "Built on the world's most flexible automation platform. Choose shared for cost, dedicated for isolation and queue mode.",
+    accent: "var(--c-magenta)",
+  },
+  hosting: {
+    title: "Managed web hosting",
+    subtitle: "We host the apps and marketing sites your business runs on. SSL + backups + on-call included.",
+    accent: "var(--c-cyan)",
+  },
+};
+
+const CATEGORY_ORDER = ["n8n", "hosting"];
+
+function format(usd: number) {
+  return `$${usd.toLocaleString("en-US")}`;
+}
+
+export default function PricingClient({ plans }: { plans: PricingPlan[] }) {
+  const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
+
+  const grouped = new Map<string, PricingPlan[]>();
+  for (const p of plans) {
+    if (!grouped.has(p.category)) grouped.set(p.category, []);
+    grouped.get(p.category)!.push(p);
+  }
+
+  return (
+    <>
+      <div className="reveal" style={{ display: "flex", justifyContent: "flex-start" }}>
+        <div className="pricing-toggle" role="tablist">
+          <button
+            role="tab"
+            aria-pressed={period === "monthly"}
+            onClick={() => setPeriod("monthly")}
+          >
+            Monthly
+          </button>
+          <button
+            role="tab"
+            aria-pressed={period === "yearly"}
+            onClick={() => setPeriod("yearly")}
+          >
+            Yearly <span className="save">~2 months free</span>
+          </button>
+        </div>
+      </div>
+
+      {CATEGORY_ORDER.filter((c) => grouped.has(c)).map((category) => {
+        const meta = CATEGORY_META[category] ?? {
+          title: category,
+          subtitle: "",
+          accent: "var(--ink)",
+        };
+        const list = (grouped.get(category) ?? []).sort(
+          (a, b) => a.sortOrder - b.sortOrder,
+        );
+        return (
+          <section key={category} className="pricing-category reveal">
+            <div className="pricing-category-head">
+              <h2>{meta.title}</h2>
+              <p>{meta.subtitle}</p>
+            </div>
+            <div className="pricing-grid">
+              {list.map((p) => {
+                const price =
+                  period === "monthly" ? p.priceMonthlyUsd : p.priceYearlyUsd;
+                const unit = period === "monthly" ? "/ month" : "/ year";
+                const features = Array.isArray(p.features) ? (p.features as string[]) : [];
+                return (
+                  <article
+                    key={p.id}
+                    className={`pricing-card ${p.highlight ? "highlight" : ""}`}
+                    style={{ ["--accent" as string]: meta.accent }}
+                  >
+                    <div className="name">{p.name}</div>
+                    {p.tagline && <div className="tagline">{p.tagline}</div>}
+                    <div className="price">
+                      <span className="amount">{format(price)}</span>
+                      <span className="unit">{unit} · USD</span>
+                    </div>
+                    {p.executionsIncluded != null && (
+                      <div className="footer-note">
+                        {p.executionsIncluded.toLocaleString("en-US")} executions
+                        {p.overageUsdPer1k != null
+                          ? ` · then $${p.overageUsdPer1k} / 1,000`
+                          : ""}
+                      </div>
+                    )}
+                    <ul>
+                      {features.map((f) => (
+                        <li key={f}>
+                          <span />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="cta">
+                      <Link
+                        href={`/contact?type=request_access&plan=${encodeURIComponent(p.slug)}&period=${period}`}
+                        className={p.highlight ? "btn btn-solid" : "btn btn-outline"}
+                      >
+                        Request invite
+                      </Link>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+
+      <section className="pricing-category reveal">
+        <div className="pricing-category-head">
+          <h2>Custom builds</h2>
+          <p>
+            AI agents, integrations, app development. Quoted per scope. Two-week paid pilots,
+            production within 60 days.
+          </p>
+        </div>
+        <div
+          style={{
+            border: "1px solid var(--line)",
+            borderRadius: 18,
+            padding: 28,
+            background: "rgba(255,255,255,0.5)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 16, alignItems: "center" }}>
+            <div>
+              <div
+                style={{
+                  fontFamily: "var(--serif)",
+                  fontStyle: "italic",
+                  fontSize: 28,
+                  color: "var(--ink)",
+                }}
+              >
+                Project, retainer or hybrid
+              </div>
+              <div style={{ color: "var(--muted)", marginTop: 6, fontSize: 14, maxWidth: "60ch" }}>
+                Most engagements start with a fixed-fee discovery, then a build sprint, then a
+                managed-operate retainer. We&apos;ll size it after a 30-minute call.
+              </div>
+            </div>
+            <Link href="/contact?type=project_inquiry" className="btn btn-solid">
+              Request a quote
+            </Link>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}

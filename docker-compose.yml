@@ -16,7 +16,7 @@ services:
       - "traefik.http.routers.sepnexus-web.entrypoints=web,websecure"
       - "traefik.http.routers.sepnexus-web.tls=true"
       - "traefik.http.routers.sepnexus-web.tls.certresolver=mytlschallenge"
-      - "traefik.http.services.sepnexus-web.loadbalancer.server.port=80"
+      - "traefik.http.services.sepnexus-web.loadbalancer.server.port=3000"
       # Redirect www → apex so we have a single canonical host.
       - "traefik.http.middlewares.sepnexus-www-redirect.redirectregex.regex=^https?://www\\.(.+)"
       - "traefik.http.middlewares.sepnexus-www-redirect.redirectregex.replacement=https://$$1"

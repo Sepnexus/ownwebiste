@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { db, schema } from "@/lib/db";
-import { asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { deletePlan, toggleVisibility } from "./_actions";
 import SyncRazorpay from "./_components/SyncRazorpay";
 
@@ -9,10 +9,15 @@ export const metadata: Metadata = { title: "Admin · Pricing" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminPricingPage() {
-  const plans = await db
-    .select()
+  const rows = await db
+    .select({
+      plan: schema.pricingPlans,
+      customForEmail: schema.users.email,
+    })
     .from(schema.pricingPlans)
+    .leftJoin(schema.users, eq(schema.users.id, schema.pricingPlans.customForUserId))
     .orderBy(asc(schema.pricingPlans.category), asc(schema.pricingPlans.sortOrder));
+  const plans = rows.map((r) => ({ ...r.plan, customForEmail: r.customForEmail }));
 
   return (
     <>
@@ -63,6 +68,19 @@ export default async function AdminPricingPage() {
                   {p.highlight && (
                     <span className="pill" style={{ marginLeft: 8, color: "var(--c-yellow)", borderColor: "var(--c-yellow)" }}>
                       Featured
+                    </span>
+                  )}
+                  {p.customForUserId && (
+                    <span
+                      className="pill"
+                      style={{
+                        marginLeft: 8,
+                        color: "var(--c-magenta)",
+                        borderColor: "var(--c-magenta)",
+                      }}
+                      title={`Custom plan visible only to ${p.customForEmail ?? p.customForUserId}`}
+                    >
+                      Custom · {p.customForEmail?.split("@")[0] ?? "user"}
                     </span>
                   )}
                 </td>

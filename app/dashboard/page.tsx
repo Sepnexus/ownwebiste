@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { currentUser } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
-import { asc, eq, desc } from "drizzle-orm";
+import { asc, eq, desc, and, or, isNull } from "drizzle-orm";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import PlansGrid from "@/components/dashboard/PlansGrid";
 import SubscriptionPanel from "@/components/dashboard/SubscriptionPanel";
@@ -40,11 +40,20 @@ export default async function DashboardPage({
     activeSub &&
     !["cancelled", "expired", "completed", "halted"].includes(activeSub.sub.status);
 
-  // Plans for the upgrade/subscribe grid.
+  // Plans for the upgrade/subscribe grid: every visible global plan,
+  // PLUS any plan custom-issued for this customer.
   const plans = await db
     .select()
     .from(schema.pricingPlans)
-    .where(eq(schema.pricingPlans.visible, true))
+    .where(
+      and(
+        eq(schema.pricingPlans.visible, true),
+        or(
+          isNull(schema.pricingPlans.customForUserId),
+          eq(schema.pricingPlans.customForUserId, user.id),
+        ),
+      ),
+    )
     .orderBy(asc(schema.pricingPlans.category), asc(schema.pricingPlans.sortOrder));
 
   return (
@@ -117,6 +126,7 @@ export default async function DashboardPage({
         <PlansGrid
           plans={plans}
           customer={{ name: user.name, email: user.email }}
+          customerId={user.id}
         />
       )}
     </DashboardShell>

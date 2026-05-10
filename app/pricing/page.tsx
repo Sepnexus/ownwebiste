@@ -4,7 +4,7 @@ import Footer from "@/components/sections/Footer";
 import CTA from "@/components/sections/CTA";
 import PricingClient from "./_components/PricingClient";
 import { db, schema } from "@/lib/db";
-import { eq, asc } from "drizzle-orm";
+import { eq, and, asc, isNull } from "drizzle-orm";
 import type { PricingPlan } from "@/lib/db/schema";
 
 export const metadata: Metadata = {
@@ -38,6 +38,7 @@ const FALLBACK_PLANS: PricingPlan[] = [
     razorpayPlanIdYearly: null,
     sortOrder: 10,
     visible: true,
+    customForUserId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   },
@@ -63,6 +64,7 @@ const FALLBACK_PLANS: PricingPlan[] = [
     razorpayPlanIdYearly: null,
     sortOrder: 20,
     visible: true,
+    customForUserId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   },
@@ -88,6 +90,7 @@ const FALLBACK_PLANS: PricingPlan[] = [
     razorpayPlanIdYearly: null,
     sortOrder: 30,
     visible: true,
+    customForUserId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   },
@@ -115,6 +118,7 @@ const FALLBACK_PLANS: PricingPlan[] = [
     razorpayPlanIdYearly: null,
     sortOrder: 10,
     visible: true,
+    customForUserId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   },
@@ -144,6 +148,7 @@ const FALLBACK_PLANS: PricingPlan[] = [
     razorpayPlanIdYearly: null,
     sortOrder: 20,
     visible: true,
+    customForUserId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   },
@@ -173,6 +178,7 @@ const FALLBACK_PLANS: PricingPlan[] = [
     razorpayPlanIdYearly: null,
     sortOrder: 30,
     visible: true,
+    customForUserId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   },
@@ -184,7 +190,12 @@ export default async function PricingPage() {
     const rows = await db
       .select()
       .from(schema.pricingPlans)
-      .where(eq(schema.pricingPlans.visible, true))
+      .where(
+        and(
+          eq(schema.pricingPlans.visible, true),
+          isNull(schema.pricingPlans.customForUserId),
+        ),
+      )
       .orderBy(asc(schema.pricingPlans.sortOrder));
     if (rows.length > 0) plans = rows;
   } catch {

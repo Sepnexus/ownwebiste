@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/lib/db";
 import { issueAuthToken, requireAdmin } from "@/lib/auth";
-import { sendInviteEmail } from "@/lib/email-templates";
+import { sendInviteEmail, notifyAdminInviteSent } from "@/lib/email-templates";
 
 const InviteInput = z.object({
   email: z.string().trim().email().max(254),
@@ -80,6 +80,9 @@ export async function inviteCustomer(formData: FormData) {
     acceptUrl,
     invitedByName: admin.name ?? admin.email,
   });
+  void notifyAdminInviteSent({ customerEmail: email, customerName: name }).catch((e) =>
+    console.error("[invite] admin notify failed:", e),
+  );
 
   revalidatePath("/admin/customers");
 

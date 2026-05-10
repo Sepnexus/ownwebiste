@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db, schema } from "@/lib/db";
-import { desc, eq, and, isNull } from "drizzle-orm";
+import { desc, eq, and, isNull, asc } from "drizzle-orm";
 import { getRecentCountersForUser } from "@/lib/usage";
 
 export const metadata: Metadata = { title: "Admin · Customer" };
@@ -10,10 +10,13 @@ export const dynamic = "force-dynamic";
 
 export default async function CustomerDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
   const { id } = await params;
+  const { ok, error } = await searchParams;
   const [user] = await db
     .select()
     .from(schema.users)
@@ -43,6 +46,12 @@ export default async function CustomerDetailPage({
 
   const counters = await getRecentCountersForUser(user.id, 12);
 
+  const customPlans = await db
+    .select()
+    .from(schema.pricingPlans)
+    .where(eq(schema.pricingPlans.customForUserId, user.id))
+    .orderBy(asc(schema.pricingPlans.sortOrder));
+
   return (
     <>
       <Link
@@ -52,6 +61,8 @@ export default async function CustomerDetailPage({
         ← Customers
       </Link>
       <h1 style={{ marginTop: 14 }}>{user.name ?? user.email.split("@")[0]}</h1>
+      {ok && <div className="form-success" style={{ marginBottom: 16, maxWidth: 920 }}>{ok}</div>}
+      {error && <div className="form-error" style={{ marginBottom: 16, maxWidth: 920 }}>{error}</div>}
       <p className="admin-subtitle">
         <a href={`mailto:${user.email}`}>{user.email}</a>
         {user.invitedAt && (
@@ -65,6 +76,77 @@ export default async function CustomerDetailPage({
           </span>
         )}
       </p>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          marginTop: 32,
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
+        <h2 style={{ margin: 0 }}>Custom plans</h2>
+        <Link
+          href={`/admin/pricing/new?customForUserId=${user.id}`}
+          className="btn btn-solid"
+          style={{ padding: "8px 14px", fontSize: 13 }}
+        >
+          + Create custom plan
+        </Link>
+      </div>
+      <p style={{ color: "var(--muted)", fontSize: 13, margin: "6px 0 16px" }}>
+        Plans tailored only for this customer. They appear in their dashboard but never on the
+        public site. Combine n8n + SaaS in one plan if you want — set the category to whatever
+        makes sense.
+      </p>
+      {customPlans.length === 0 ? (
+        <p style={{ color: "var(--muted)" }}>No custom plans for this customer yet.</p>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Plan</th>
+              <th style={{ width: 110 }}>Category</th>
+              <th style={{ width: 110, textAlign: "right" }}>Monthly</th>
+              <th style={{ width: 110, textAlign: "right" }}>Yearly</th>
+              <th style={{ width: 110 }}>Status</th>
+              <th style={{ width: 110, textAlign: "right" }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {customPlans.map((p) => (
+              <tr key={p.id}>
+                <td>
+                  <Link href={`/admin/pricing/${p.id}`} style={{ color: "var(--ink)", textDecoration: "none" }}>
+                    <strong>{p.name}</strong>
+                    <br />
+                    <span style={{ color: "var(--muted)", fontFamily: "var(--mono)", fontSize: 12 }}>
+                      {p.slug}
+                    </span>
+                  </Link>
+                </td>
+                <td><span className="pill">{p.category}</span></td>
+                <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>${p.priceMonthlyUsd}</td>
+                <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>${p.priceYearlyUsd}</td>
+                <td>
+                  {p.visible ? <span className="pill live">Live</span> : <span className="pill hidden">Hidden</span>}
+                </td>
+                <td style={{ textAlign: "right" }}>
+                  <Link
+                    href={`/admin/pricing/${p.id}`}
+                    className="btn btn-outline"
+                    style={{ padding: "6px 10px", fontSize: 12 }}
+                  >
+                    Edit
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
       <h2 style={{ marginTop: 32 }}>Subscriptions</h2>
       {subs.length === 0 ? (

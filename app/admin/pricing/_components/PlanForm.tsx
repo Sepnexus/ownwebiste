@@ -4,14 +4,41 @@ type Props = {
   plan?: PricingPlan;
   action: (formData: FormData) => Promise<void>;
   error?: string;
+  /**
+   * If set, the plan being created/edited is custom for this user.
+   * The form pins the customForUserId via a hidden input and shows a banner.
+   */
+  customForUserId?: string | null;
+  customForUserEmail?: string | null;
 };
 
-export default function PlanForm({ plan, action, error }: Props) {
+export default function PlanForm({ plan, action, error, customForUserId, customForUserEmail }: Props) {
   const features = Array.isArray(plan?.features) ? (plan.features as string[]).join("\n") : "";
+  const pinnedCustomFor = customForUserId ?? plan?.customForUserId ?? null;
 
   return (
     <form action={action} className="admin-form">
       {plan && <input type="hidden" name="id" value={plan.id} />}
+      {pinnedCustomFor && <input type="hidden" name="customForUserId" value={pinnedCustomFor} />}
+
+      {pinnedCustomFor && (
+        <div
+          style={{
+            padding: "12px 16px",
+            background: "linear-gradient(90deg, rgba(177,73,153,0.06), rgba(43,182,224,0.06))",
+            border: "1px solid var(--line)",
+            borderRadius: 12,
+            fontFamily: "var(--sans)",
+            textTransform: "none",
+            letterSpacing: 0,
+            color: "var(--ink-2)",
+            fontSize: 13,
+          }}
+        >
+          <strong>Custom plan</strong> — this plan will be visible only to{" "}
+          {customForUserEmail ?? pinnedCustomFor}. It won&apos;t appear on the public /pricing page.
+        </div>
+      )}
 
       {error && <div className="form-error">{error}</div>}
 

@@ -87,6 +87,11 @@ export const pricingPlans = pgTable(
     razorpayPlanIdYearly: text("razorpay_plan_id_yearly"),
     sortOrder: integer("sort_order").notNull().default(0),
     visible: boolean("visible").notNull().default(true),
+    /**
+     * If set, this plan is private — only the named user sees it on the
+     * public pricing page and in their dashboard. NULL = global plan.
+     */
+    customForUserId: uuid("custom_for_user_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -94,6 +99,7 @@ export const pricingPlans = pgTable(
     uniqueIndex("pricing_plans_slug_uniq").on(t.slug),
     index("pricing_plans_category_idx").on(t.category, t.sortOrder),
     index("pricing_plans_visible_idx").on(t.visible),
+    index("pricing_plans_custom_for_idx").on(t.customForUserId),
   ],
 );
 

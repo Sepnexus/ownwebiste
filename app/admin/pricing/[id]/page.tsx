@@ -26,19 +26,34 @@ export default async function EditPlanPage({
     .limit(1);
   if (!plan) notFound();
 
+  let customEmail: string | null = null;
+  if (plan.customForUserId) {
+    const [u] = await db
+      .select({ email: schema.users.email })
+      .from(schema.users)
+      .where(eq(schema.users.id, plan.customForUserId))
+      .limit(1);
+    customEmail = u?.email ?? null;
+  }
+
   return (
     <>
       <Link
-        href="/admin/pricing"
+        href={plan.customForUserId ? `/admin/customers/${plan.customForUserId}` : "/admin/pricing"}
         style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--muted)", textDecoration: "none" }}
       >
-        ← Pricing
+        ← {plan.customForUserId ? "Customer" : "Pricing"}
       </Link>
       <h1 style={{ marginTop: 14 }}>Edit · {plan.name}</h1>
       <p className="admin-subtitle">
         Last updated {new Date(plan.updatedAt).toLocaleString()}
       </p>
-      <PlanForm plan={plan} action={updatePlan} error={error} />
+      <PlanForm
+        plan={plan}
+        action={updatePlan}
+        error={error}
+        customForUserEmail={customEmail}
+      />
     </>
   );
 }

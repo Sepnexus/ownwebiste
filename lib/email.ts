@@ -54,6 +54,12 @@ export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; id?: str
 /** Shared header used by every transactional email. */
 export function emailLayout(args: { title: string; preheader?: string; bodyHtml: string }) {
   const preheader = args.preheader ?? "";
+  const base = process.env.PUBLIC_BASE_URL ?? "https://sepnexus.com";
+  const logoUrl =
+    process.env.EMAIL_LOGO_URL ??
+    (base.startsWith("http://localhost")
+      ? "https://sepnexus.com/assets/sepnexus-mark.png"
+      : `${base}/assets/sepnexus-mark.png`);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -62,19 +68,41 @@ export function emailLayout(args: { title: string; preheader?: string; bodyHtml:
   <title>${escapeHtml(args.title)}</title>
 </head>
 <body style="margin:0;padding:0;background:#f6f3ec;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#14110f;">
-  <span style="display:none;font-size:0;line-height:0;color:transparent;opacity:0;height:0;width:0;">${escapeHtml(preheader)}</span>
+  <span style="display:none;font-size:0;line-height:0;color:transparent;opacity:0;height:0;width:0;mso-hide:all;">${escapeHtml(preheader)}</span>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3ec;">
     <tr><td align="center" style="padding:32px 16px;">
-      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid rgba(20,17,16,0.08);border-radius:16px;overflow:hidden;">
-        <tr><td style="padding:28px 32px 0;">
-          <span style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:22px;letter-spacing:-0.01em;color:#14110f;">Sepnexus</span>
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid rgba(20,17,16,0.08);border-radius:18px;overflow:hidden;">
+        <tr><td style="padding:28px 32px 8px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="padding-right:12px;vertical-align:middle;">
+                <img src="${logoUrl}" alt="Sepnexus" width="36" height="36" style="display:block;border:0;outline:none;text-decoration:none;border-radius:6px;">
+              </td>
+              <td style="vertical-align:middle;">
+                <span style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:24px;letter-spacing:-0.01em;color:#14110f;line-height:1;">Sepnexus</span>
+                <br>
+                <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:#98928a;line-height:1.6;">
+                  Infrastructure of intelligent work
+                </span>
+              </td>
+            </tr>
+          </table>
         </td></tr>
-        <tr><td style="padding:24px 32px 32px;font-size:15px;line-height:1.6;color:#2a2520;">
+        <tr><td style="padding:8px 32px 12px;">
+          <hr style="border:none;border-top:1px solid rgba(20,17,16,0.08);margin:0;">
+        </td></tr>
+        <tr><td style="padding:8px 32px 32px;font-size:15px;line-height:1.65;color:#2a2520;">
           ${args.bodyHtml}
         </td></tr>
-        <tr><td style="padding:0 32px 28px;font-size:12px;line-height:1.5;color:#98928a;border-top:1px solid rgba(20,17,16,0.06);padding-top:16px;">
-          Sepnexus &middot; The infrastructure of intelligent work.<br>
-          You're receiving this because you contacted us through sepnexus.com. If this wasn't you, ignore this email.
+        <tr><td style="padding:16px 32px 28px;font-size:12px;line-height:1.5;color:#98928a;border-top:1px solid rgba(20,17,16,0.06);">
+          <strong style="color:#2a2520;">Sepnexus, Inc.</strong><br>
+          Agentic systems · Process automation · Managed cloud<br>
+          <a href="${base}" style="color:#2a2520;text-decoration:none;border-bottom:1px solid rgba(20,17,16,0.2);">sepnexus.com</a> &nbsp;·&nbsp;
+          <a href="mailto:akshay@sepnexus.com" style="color:#2a2520;text-decoration:none;border-bottom:1px solid rgba(20,17,16,0.2);">akshay@sepnexus.com</a>
+          <br><br>
+          <span style="font-size:11px;color:#98928a;">
+            You're receiving this because you have a Sepnexus account or you contacted us through sepnexus.com.
+          </span>
         </td></tr>
       </table>
     </td></tr>

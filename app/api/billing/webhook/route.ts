@@ -2,6 +2,12 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { verifyWebhookSignature, type RzpSubscription } from "@/lib/razorpay";
 import { applySubscriptionEvent, recordInvoiceFromCharge } from "@/lib/billing";
+import {
+  notifyAdminSubscriptionStarted,
+  notifyAdminSubscriptionCancelled,
+  notifyAdminPaymentReceived,
+  notifyAdminPaymentFailed,
+} from "@/lib/email-templates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -134,7 +140,6 @@ async function dispatch(p: WebhookPayload) {
       if (sub) {
         await applySubscriptionEvent({ event: p.event, rzpSub: sub });
       }
-      // For charged events, also create/update invoice if present.
       if (p.event === "subscription.charged" && inv) {
         await recordInvoiceFromCharge({
           rzpSubscriptionId: inv.subscription_id ?? sub?.id ?? "",
@@ -147,6 +152,15 @@ async function dispatch(p: WebhookPayload) {
           periodStart: inv.period_start ? new Date(inv.period_start * 1000) : null,
           periodEnd: inv.period_end ? new Date(inv.period_end * 1000) : null,
         });
+        if (sub) {
+          void notifyPayment(sub.id, inv.amount_paid || inv.amount, inv.currency, inv.id);
+        }
+      }
+      if (p.event === "subscription.activated" && sub) {
+        void notifySubscriptionStarted(sub.id);
+      }
+      if (p.event === "subscription.cancelled" && sub) {
+        void notifySubscriptionCancelled(sub.id);
       }
       break;
 
@@ -163,16 +177,103 @@ async function dispatch(p: WebhookPayload) {
           periodStart: inv.period_start ? new Date(inv.period_start * 1000) : null,
           periodEnd: inv.period_end ? new Date(inv.period_end * 1000) : null,
         });
+        if (inv.subscription_id) {
+          void notifyPayment(inv.subscription_id, inv.amount_paid || inv.amount, inv.currency, inv.id);
+        }
       }
       break;
 
     case "payment.failed":
-      // Logged via webhook_events row; no DB-state change needed unless we
-      // want to flip the subscription to a "payment_failed" mirror state.
+      if (pay && pay.invoice_id) {
+        const [row] = await db
+          .select({
+            user: schema.users,
+            plan: schema.pricingPlans,
+          })
+          .from(schema.invoices)
+          .leftJoin(
+            schema.subscriptions,
+            eq(schema.subscriptions.id, schema.invoices.subscriptionId),
+          )
+          .leftJoin(schema.users, eq(schema.users.id, schema.subscriptions.userId))
+          .leftJoin(
+            schema.pricingPlans,
+            eq(schema.pricingPlans.id, schema.subscriptions.planId),
+          )
+          .where(eq(schema.invoices.razorpayInvoiceId, pay.invoice_id))
+          .limit(1);
+        if (row?.user && row?.plan) {
+          void notifyAdminPaymentFailed({
+            customerEmail: row.user.email,
+            customerName: row.user.name,
+            planName: row.plan.name,
+            amountCents: pay.amount,
+            currency: pay.currency,
+          }).catch((e) => console.error("[webhook] failed-notify failed:", e));
+        }
+      }
       break;
 
     default:
-      // Other events (refunds, disputes, etc.) — recorded but not handled.
       break;
   }
+}
+
+async function notifySubscriptionStarted(rzpSubId: string) {
+  const [row] = await db
+    .select({ sub: schema.subscriptions, user: schema.users, plan: schema.pricingPlans })
+    .from(schema.subscriptions)
+    .leftJoin(schema.users, eq(schema.users.id, schema.subscriptions.userId))
+    .leftJoin(schema.pricingPlans, eq(schema.pricingPlans.id, schema.subscriptions.planId))
+    .where(eq(schema.subscriptions.razorpaySubscriptionId, rzpSubId))
+    .limit(1);
+  if (!row?.user || !row?.plan) return;
+  await notifyAdminSubscriptionStarted({
+    customerEmail: row.user.email,
+    customerName: row.user.name,
+    planName: row.plan.name,
+    period: row.sub.period,
+    amountUsd:
+      row.sub.period === "yearly" ? row.plan.priceYearlyUsd : row.plan.priceMonthlyUsd,
+  }).catch((e) => console.error("[webhook] sub-started notify:", e));
+}
+
+async function notifySubscriptionCancelled(rzpSubId: string) {
+  const [row] = await db
+    .select({ user: schema.users, plan: schema.pricingPlans })
+    .from(schema.subscriptions)
+    .leftJoin(schema.users, eq(schema.users.id, schema.subscriptions.userId))
+    .leftJoin(schema.pricingPlans, eq(schema.pricingPlans.id, schema.subscriptions.planId))
+    .where(eq(schema.subscriptions.razorpaySubscriptionId, rzpSubId))
+    .limit(1);
+  if (!row?.user || !row?.plan) return;
+  await notifyAdminSubscriptionCancelled({
+    customerEmail: row.user.email,
+    customerName: row.user.name,
+    planName: row.plan.name,
+  }).catch((e) => console.error("[webhook] sub-cancel notify:", e));
+}
+
+async function notifyPayment(
+  rzpSubId: string,
+  amountCents: number,
+  currency: string,
+  invoiceId: string | null,
+) {
+  const [row] = await db
+    .select({ user: schema.users, plan: schema.pricingPlans })
+    .from(schema.subscriptions)
+    .leftJoin(schema.users, eq(schema.users.id, schema.subscriptions.userId))
+    .leftJoin(schema.pricingPlans, eq(schema.pricingPlans.id, schema.subscriptions.planId))
+    .where(eq(schema.subscriptions.razorpaySubscriptionId, rzpSubId))
+    .limit(1);
+  if (!row?.user || !row?.plan) return;
+  await notifyAdminPaymentReceived({
+    customerEmail: row.user.email,
+    customerName: row.user.name,
+    planName: row.plan.name,
+    amountCents,
+    currency,
+    invoiceId,
+  }).catch((e) => console.error("[webhook] payment notify:", e));
 }

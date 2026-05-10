@@ -6,6 +6,7 @@ import {
   setUserPassword,
   setSessionCookie,
 } from "@/lib/auth";
+import { notifyAdminInviteAccepted } from "@/lib/email-templates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,5 +55,9 @@ export async function POST(req: Request) {
     .where(eq(schema.users.id, user.id));
 
   await setSessionCookie({ uid: user.id, role: user.role });
+  void notifyAdminInviteAccepted({
+    customerEmail: user.email,
+    customerName: parsed.name?.trim() || user.name,
+  }).catch((e) => console.error("[invite/accept] admin notify failed:", e));
   return Response.json({ ok: true });
 }

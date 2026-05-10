@@ -6,7 +6,8 @@ import AdminSignOut from "./_components/AdminSignOut";
 export const dynamic = "force-dynamic";
 
 const NAV: { label: string; href: string; section: "main" | "system" }[] = [
-  { label: "Inbox", href: "/admin", section: "main" },
+  { label: "Overview", href: "/admin", section: "main" },
+  { label: "Inbox", href: "/admin/inbox", section: "main" },
   { label: "Customers", href: "/admin/customers", section: "main" },
   { label: "Subscriptions", href: "/admin/subscriptions", section: "main" },
   { label: "Usage", href: "/admin/usage", section: "main" },

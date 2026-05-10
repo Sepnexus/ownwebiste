@@ -27,6 +27,7 @@ const PlanInput = z.object({
   sortOrder: z.coerce.number().int().default(0),
   razorpayPlanIdMonthly: z.string().trim().max(120).optional().nullable(),
   razorpayPlanIdYearly: z.string().trim().max(120).optional().nullable(),
+  customForUserId: z.string().uuid().optional().nullable(),
 });
 
 function normalize(formData: FormData) {
@@ -40,6 +41,8 @@ function normalize(formData: FormData) {
   obj.razorpayPlanIdMonthly =
     (raw.razorpayPlanIdMonthly as string)?.trim() || null;
   obj.razorpayPlanIdYearly = (raw.razorpayPlanIdYearly as string)?.trim() || null;
+  const cfu = (raw.customForUserId as string)?.trim();
+  obj.customForUserId = cfu && cfu.length > 0 ? cfu : null;
   return obj;
 }
 
@@ -61,23 +64,29 @@ export async function createPlan(formData: FormData) {
 
   const features = featuresFromText(parsed.data.features);
 
+  let createdPlanId: string | null = null;
   try {
-    await db.insert(schema.pricingPlans).values({
-      slug: parsed.data.slug,
-      category: parsed.data.category,
-      name: parsed.data.name,
-      tagline: parsed.data.tagline ?? null,
-      priceMonthlyUsd: parsed.data.priceMonthlyUsd,
-      priceYearlyUsd: parsed.data.priceYearlyUsd,
-      executionsIncluded: parsed.data.executionsIncluded ?? null,
-      overageUsdPer1k: parsed.data.overageUsdPer1k ?? null,
-      features,
-      highlight: parsed.data.highlight ?? false,
-      visible: parsed.data.visible ?? true,
-      sortOrder: parsed.data.sortOrder,
-      razorpayPlanIdMonthly: parsed.data.razorpayPlanIdMonthly ?? null,
-      razorpayPlanIdYearly: parsed.data.razorpayPlanIdYearly ?? null,
-    });
+    const [row] = await db
+      .insert(schema.pricingPlans)
+      .values({
+        slug: parsed.data.slug,
+        category: parsed.data.category,
+        name: parsed.data.name,
+        tagline: parsed.data.tagline ?? null,
+        priceMonthlyUsd: parsed.data.priceMonthlyUsd,
+        priceYearlyUsd: parsed.data.priceYearlyUsd,
+        executionsIncluded: parsed.data.executionsIncluded ?? null,
+        overageUsdPer1k: parsed.data.overageUsdPer1k ?? null,
+        features,
+        highlight: parsed.data.highlight ?? false,
+        visible: parsed.data.visible ?? true,
+        sortOrder: parsed.data.sortOrder,
+        razorpayPlanIdMonthly: parsed.data.razorpayPlanIdMonthly ?? null,
+        razorpayPlanIdYearly: parsed.data.razorpayPlanIdYearly ?? null,
+        customForUserId: parsed.data.customForUserId ?? null,
+      })
+      .returning({ id: schema.pricingPlans.id });
+    createdPlanId = row.id;
   } catch (e) {
     const msg = (e as Error).message ?? "";
     if (msg.includes("pricing_plans_slug_uniq") || msg.includes("duplicate")) {
@@ -88,6 +97,11 @@ export async function createPlan(formData: FormData) {
 
   revalidatePath("/admin/pricing");
   revalidatePath("/pricing");
+  if (parsed.data.customForUserId) {
+    revalidatePath(`/admin/customers/${parsed.data.customForUserId}`);
+    redirect(`/admin/customers/${parsed.data.customForUserId}?ok=${encodeURIComponent("Custom plan created.")}`);
+  }
+  if (createdPlanId) redirect(`/admin/pricing/${createdPlanId}`);
   redirect("/admin/pricing");
 }
 
@@ -120,6 +134,7 @@ export async function updatePlan(formData: FormData) {
         sortOrder: parsed.data.sortOrder,
         razorpayPlanIdMonthly: parsed.data.razorpayPlanIdMonthly ?? null,
         razorpayPlanIdYearly: parsed.data.razorpayPlanIdYearly ?? null,
+        customForUserId: parsed.data.customForUserId ?? null,
         updatedAt: new Date(),
       })
       .where(eq(schema.pricingPlans.id, id));

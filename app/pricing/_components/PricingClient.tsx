@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { PricingPlan } from "@/lib/db/schema";
+import { currencySymbol, periodSuffix } from "@/lib/format";
 
 const CATEGORY_META: Record<
   string,
@@ -24,8 +25,8 @@ const CATEGORY_META: Record<
 
 const CATEGORY_ORDER = ["n8n", "saas"];
 
-function format(usd: number) {
-  return `$${usd.toLocaleString("en-US")}`;
+function formatPriceWithSymbol(amount: number, currency: string) {
+  return `${currencySymbol(currency)}${amount.toLocaleString("en-US")}`;
 }
 
 export default function PricingClient({ plans }: { plans: PricingPlan[] }) {
@@ -77,8 +78,8 @@ export default function PricingClient({ plans }: { plans: PricingPlan[] }) {
               {list.map((p) => {
                 const price =
                   period === "monthly" ? p.priceMonthlyUsd : p.priceYearlyUsd;
-                const unit = period === "monthly" ? "/ month" : "/ year";
                 const features = Array.isArray(p.features) ? (p.features as string[]) : [];
+                const sym = currencySymbol(p.currency);
                 return (
                   <article
                     key={p.id}
@@ -88,14 +89,14 @@ export default function PricingClient({ plans }: { plans: PricingPlan[] }) {
                     <div className="name">{p.name}</div>
                     {p.tagline && <div className="tagline">{p.tagline}</div>}
                     <div className="price">
-                      <span className="amount">{format(price)}</span>
-                      <span className="unit">{unit} · USD</span>
+                      <span className="amount">{formatPriceWithSymbol(price, p.currency)}</span>
+                      <span className="unit">{periodSuffix(period, p.currency)}</span>
                     </div>
                     {p.executionsIncluded != null && (
                       <div className="footer-note">
                         {p.executionsIncluded.toLocaleString("en-US")} executions
                         {p.overageUsdPer1k != null
-                          ? ` · then $${p.overageUsdPer1k} / 1,000`
+                          ? ` · then ${sym}${p.overageUsdPer1k} / 1,000`
                           : ""}
                       </div>
                     )}
@@ -110,7 +111,7 @@ export default function PricingClient({ plans }: { plans: PricingPlan[] }) {
                           href={`/subscribe?planId=${p.id}&period=${period}`}
                           className={p.highlight ? "btn btn-solid" : "btn btn-outline"}
                         >
-                          Subscribe → ${price}
+                          Subscribe → {sym}{price}
                         </Link>
                       ) : (
                         <Link

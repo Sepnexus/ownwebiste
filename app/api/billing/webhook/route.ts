@@ -109,6 +109,7 @@ type WebhookPayload = {
         id: string;
         order_id?: string;
         subscription_id?: string;
+        short_url?: string | null;
         amount: number;
         amount_paid: number;
         amount_due: number;
@@ -147,6 +148,7 @@ async function dispatch(p: WebhookPayload) {
           rzpSubscriptionId: inv.subscription_id ?? sub?.id ?? "",
           rzpInvoiceId: inv.id,
           rzpPaymentId: pay?.id,
+          rzpShortUrl: inv.short_url ?? null,
           amountCents: inv.amount_paid || inv.amount,
           currency: inv.currency,
           paid: inv.status === "paid",
@@ -178,6 +180,7 @@ async function dispatch(p: WebhookPayload) {
           rzpSubscriptionId: inv.subscription_id ?? "",
           rzpInvoiceId: inv.id,
           rzpPaymentId: pay?.id,
+          rzpShortUrl: inv.short_url ?? null,
           amountCents: inv.amount_paid || inv.amount,
           currency: inv.currency,
           paid: true,
@@ -259,6 +262,7 @@ async function maybeWelcomeSelfServeUser(rzpSubId: string) {
     amountUsd:
       row.sub.period === "yearly" ? row.plan.priceYearlyUsd : row.plan.priceMonthlyUsd,
     period: row.sub.period,
+    currency: row.plan.currency,
   });
 }
 

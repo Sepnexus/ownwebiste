@@ -9,6 +9,41 @@ function escapeHtml(s: string): string {
     .replaceAll("'", "&#39;");
 }
 
+/**
+ * Sent during the public /subscribe checkout to confirm the visitor
+ * controls the email they entered. The 6-digit code is displayed prominently.
+ */
+export async function sendOtpEmail(args: {
+  to: string;
+  code: string;
+  expiresInMinutes?: number;
+}) {
+  const minutes = args.expiresInMinutes ?? 10;
+  const body = `
+    <p style="margin:0 0 14px;">Use this code to verify your email and continue with checkout:</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 16px;width:100%;">
+      <tr><td align="center" style="padding:18px;background:#faf7ef;border:1px solid rgba(20,17,16,0.08);border-radius:12px;">
+        <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:36px;letter-spacing:0.18em;color:#14110f;font-weight:500;">
+          ${escapeHtml(args.code)}
+        </span>
+      </td></tr>
+    </table>
+    <p style="margin:0 0 14px;font-size:13px;color:#6b6660;">
+      Code expires in ${minutes} minutes. If you didn't request this, ignore the email — no
+      account is created until the code is verified <em>and</em> payment is authorised.
+    </p>
+  `;
+  return sendEmail({
+    to: args.to,
+    subject: `Your Sepnexus verification code — ${args.code}`,
+    html: emailLayout({
+      title: "Your verification code",
+      preheader: `Use ${args.code} to continue checkout. Expires in ${minutes} min.`,
+      bodyHtml: body,
+    }),
+  });
+}
+
 function adminEmail(): string | null {
   const e = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   if (!e) return null;
@@ -210,13 +245,16 @@ export async function sendWelcomePostPaymentEmail(args: {
   planName: string;
   amountUsd: number;
   period: string;
+  currency?: string;
 }) {
   const greeting = args.name ? `Hi ${escapeHtml(args.name.split(" ")[0] || args.name)},` : "Hi,";
+  const sym = args.currency === "INR" ? "₹" : "$";
+  const cur = args.currency ?? "USD";
   const body = `
     <p style="margin:0 0 14px;">${greeting}</p>
     <p style="margin:0 0 16px;">
       Welcome to Sepnexus. Your <strong>${escapeHtml(args.planName)}</strong> subscription is
-      active — you were charged <strong>$${args.amountUsd.toLocaleString()} ${escapeHtml(args.period)}</strong>.
+      active — you were charged <strong>${sym}${args.amountUsd.toLocaleString()} ${escapeHtml(args.period)} (${cur})</strong>.
     </p>
     <p style="margin:0 0 16px;">
       One last step: click below to set a password and log in to your dashboard. The link is

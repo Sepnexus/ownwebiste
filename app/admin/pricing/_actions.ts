@@ -28,6 +28,7 @@ const PlanInput = z.object({
   razorpayPlanIdMonthly: z.string().trim().max(120).optional().nullable(),
   razorpayPlanIdYearly: z.string().trim().max(120).optional().nullable(),
   customForUserId: z.string().uuid().optional().nullable(),
+  currency: z.enum(["USD", "INR"]).optional(),
 });
 
 function normalize(formData: FormData) {
@@ -84,6 +85,7 @@ export async function createPlan(formData: FormData) {
         razorpayPlanIdMonthly: parsed.data.razorpayPlanIdMonthly ?? null,
         razorpayPlanIdYearly: parsed.data.razorpayPlanIdYearly ?? null,
         customForUserId: parsed.data.customForUserId ?? null,
+        currency: parsed.data.currency ?? "USD",
       })
       .returning({ id: schema.pricingPlans.id });
     createdPlanId = row.id;
@@ -135,6 +137,7 @@ export async function updatePlan(formData: FormData) {
         razorpayPlanIdMonthly: parsed.data.razorpayPlanIdMonthly ?? null,
         razorpayPlanIdYearly: parsed.data.razorpayPlanIdYearly ?? null,
         customForUserId: parsed.data.customForUserId ?? null,
+        currency: parsed.data.currency ?? "USD",
         updatedAt: new Date(),
       })
       .where(eq(schema.pricingPlans.id, id));

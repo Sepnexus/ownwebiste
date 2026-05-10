@@ -85,6 +85,7 @@ export default async function BillingPage() {
               <th style={{ width: 130 }}>Period</th>
               <th style={{ width: 130 }}>Status</th>
               <th style={{ width: 140, textAlign: "right" }}>Amount</th>
+              <th style={{ width: 120, textAlign: "right" }}>Invoice</th>
             </tr>
           </thead>
           <tbody>
@@ -113,11 +114,46 @@ export default async function BillingPage() {
                 <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>
                   {fmtMoney(inv.amountCents, inv.currency)}
                 </td>
+                <td style={{ textAlign: "right" }}>
+                  {inv.razorpayShortUrl ? (
+                    <a
+                      href={inv.razorpayShortUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-outline"
+                      style={{ padding: "5px 10px", fontSize: 11 }}
+                    >
+                      Download ↗
+                    </a>
+                  ) : (
+                    <span
+                      style={{
+                        fontFamily: "var(--mono)",
+                        fontSize: 11,
+                        color: "var(--muted)",
+                      }}
+                    >
+                      —
+                    </span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
+      <p
+        style={{
+          fontSize: 12,
+          color: "var(--muted)",
+          marginTop: 16,
+          maxWidth: 720,
+          lineHeight: 1.6,
+        }}
+      >
+        Invoices are issued by Razorpay. Click <strong>Download</strong> to open the official
+        invoice page where you can save it as a PDF or email it to your accounts team.
+      </p>
     </DashboardShell>
   );
 }

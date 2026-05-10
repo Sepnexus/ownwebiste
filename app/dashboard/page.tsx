@@ -101,6 +101,7 @@ export default async function DashboardPage({
                 ? activeSub.plan.priceMonthlyUsd
                 : activeSub.plan.priceYearlyUsd
             }
+            currency={activeSub.plan.currency}
             nextBillingDate={
               activeSub.sub.currentPeriodEnd
                 ? new Date(activeSub.sub.currentPeriodEnd).toLocaleDateString(undefined, {

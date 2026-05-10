@@ -9,6 +9,7 @@ export default function SubscriptionPanel({
   planName,
   period,
   amountUsd,
+  currency,
   nextBillingDate,
   cancelAtPeriodEnd,
 }: {
@@ -17,6 +18,7 @@ export default function SubscriptionPanel({
   planName: string;
   period: string;
   amountUsd: number;
+  currency: string;
   nextBillingDate: string | null;
   cancelAtPeriodEnd: boolean;
 }) {
@@ -90,7 +92,7 @@ export default function SubscriptionPanel({
             {planName}
           </div>
           <div style={{ color: "var(--muted)", fontSize: 14, marginTop: 4 }}>
-            ${amountUsd.toLocaleString()} / {period} · USD
+            {currency === "INR" ? "₹" : "$"}{amountUsd.toLocaleString()} / {period} · {currency}
           </div>
         </div>
         <span

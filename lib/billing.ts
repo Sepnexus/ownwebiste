@@ -252,6 +252,7 @@ export async function recordInvoiceFromCharge(args: {
   rzpSubscriptionId: string;
   rzpInvoiceId?: string;
   rzpPaymentId?: string;
+  rzpShortUrl?: string | null;
   amountCents: number;
   currency: string;
   paid: boolean;
@@ -283,6 +284,7 @@ export async function recordInvoiceFromCharge(args: {
           status: args.paid ? "paid" : "pending",
           paidAt: args.paid ? args.paidAt ?? new Date() : null,
           razorpayPaymentId: args.rzpPaymentId ?? null,
+          razorpayShortUrl: args.rzpShortUrl ?? null,
           updatedAt: new Date(),
         })
         .where(eq(schema.invoices.id, existing.id));
@@ -295,6 +297,7 @@ export async function recordInvoiceFromCharge(args: {
     userId: sub.userId,
     razorpayInvoiceId: args.rzpInvoiceId ?? null,
     razorpayPaymentId: args.rzpPaymentId ?? null,
+    razorpayShortUrl: args.rzpShortUrl ?? null,
     amountCents: args.amountCents,
     currency: args.currency,
     status: args.paid ? "paid" : "pending",

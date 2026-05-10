@@ -36,6 +36,13 @@
       "when": 1778426014079,
       "tag": "0004_custom_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778427551996,
+      "tag": "0005_otp_currency",
+      "breakpoints": true
     }
   ]
 }

@@ -3,6 +3,7 @@ import { eq, isNull, and } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { startSubscription } from "@/lib/billing";
 import { RazorpayError } from "@/lib/razorpay";
+import { verifyOtpTicket } from "@/lib/otp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +27,8 @@ const Body = z.object({
   name: z.string().trim().min(1).max(120).optional().nullable(),
   planId: z.string().uuid(),
   period: z.enum(["monthly", "yearly"]),
+  /** JWT ticket from /api/email/verify-check proving the user owns this email. */
+  verificationTicket: z.string().min(20),
 });
 
 export async function POST(req: Request) {
@@ -38,6 +41,19 @@ export async function POST(req: Request) {
   }
 
   const email = parsed.email.toLowerCase();
+
+  // Email must have been verified via OTP (within the ticket's lifetime).
+  const ticketOk = await verifyOtpTicket({
+    ticket: parsed.verificationTicket,
+    expectedEmail: email,
+    expectedPurpose: "checkout",
+  });
+  if (!ticketOk) {
+    return Response.json(
+      { error: "Email verification expired. Please request a new code." },
+      { status: 401 },
+    );
+  }
 
   // Plan must exist, be visible, and not be a custom-for-someone-else plan.
   const [plan] = await db

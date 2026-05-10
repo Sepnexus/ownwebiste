@@ -33,6 +33,7 @@ export default async function SubscribePage({
   if (!plan) notFound();
 
   const usd = period === "monthly" ? plan.priceMonthlyUsd : plan.priceYearlyUsd;
+  const sym = plan.currency === "INR" ? "₹" : "$";
   const synced =
     period === "monthly" ? plan.razorpayPlanIdMonthly : plan.razorpayPlanIdYearly;
   const features = Array.isArray(plan.features) ? (plan.features as string[]) : [];
@@ -96,16 +97,16 @@ export default async function SubscribePage({
               </div>
               {plan.tagline && <div className="tagline">{plan.tagline}</div>}
               <div className="price">
-                <span className="amount">${usd.toLocaleString()}</span>
+                <span className="amount">{sym}{usd.toLocaleString()}</span>
                 <span className="unit">
-                  / {period === "monthly" ? "month" : "year"} · USD
+                  / {period === "monthly" ? "month" : "year"} · {plan.currency}
                 </span>
               </div>
               {plan.executionsIncluded != null && (
                 <div className="footer-note">
                   {plan.executionsIncluded.toLocaleString()} executions
                   {plan.overageUsdPer1k != null
-                    ? ` · then $${plan.overageUsdPer1k} / 1,000`
+                    ? ` · then ${sym}${plan.overageUsdPer1k} / 1,000`
                     : ""}
                 </div>
               )}
@@ -152,6 +153,7 @@ export default async function SubscribePage({
                   planName={plan.name}
                   period={period}
                   amountUsd={usd}
+                  currency={plan.currency}
                 />
               )}
 

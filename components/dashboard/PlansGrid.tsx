@@ -57,22 +57,23 @@ export default function PlansGrid({
   }
 
   function renderCard(p: PricingPlan) {
-    const usd = period === "monthly" ? p.priceMonthlyUsd : p.priceYearlyUsd;
+    const amount = period === "monthly" ? p.priceMonthlyUsd : p.priceYearlyUsd;
     const features = Array.isArray(p.features) ? (p.features as string[]) : [];
     const synced =
       period === "monthly" ? !!p.razorpayPlanIdMonthly : !!p.razorpayPlanIdYearly;
+    const sym = p.currency === "INR" ? "₹" : "$";
     return (
       <article key={p.id} className={`pricing-card ${p.highlight ? "highlight" : ""}`}>
         <div className="name">{p.name}</div>
         {p.tagline && <div className="tagline">{p.tagline}</div>}
         <div className="price">
-          <span className="amount">${usd.toLocaleString()}</span>
-          <span className="unit">/ {period === "monthly" ? "month" : "year"} · USD</span>
+          <span className="amount">{sym}{amount.toLocaleString()}</span>
+          <span className="unit">/ {period === "monthly" ? "month" : "year"} · {p.currency}</span>
         </div>
         {p.executionsIncluded != null && (
           <div className="footer-note">
             {p.executionsIncluded.toLocaleString()} executions
-            {p.overageUsdPer1k != null ? ` · then $${p.overageUsdPer1k} / 1,000` : ""}
+            {p.overageUsdPer1k != null ? ` · then ${sym}${p.overageUsdPer1k} / 1,000` : ""}
           </div>
         )}
         <ul>
@@ -93,7 +94,7 @@ export default function PlansGrid({
               ? "Opening checkout…"
               : !synced
                 ? "Coming soon"
-                : `Subscribe → $${usd}`}
+                : `Subscribe → ${sym}${amount}`}
           </button>
         </div>
       </article>

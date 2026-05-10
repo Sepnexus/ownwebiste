@@ -88,9 +88,21 @@ export default function PlanForm({ plan, action, error, customForUserId, customF
         />
       </label>
 
+      <label>
+        Currency
+        <select name="currency" defaultValue={plan?.currency ?? "USD"}>
+          <option value="USD">USD — US Dollars ($)</option>
+          <option value="INR">INR — Indian Rupees (₹)</option>
+        </select>
+        <span className="help">
+          Pick USD for international customers, INR for Indian. The price fields below are in
+          this currency&apos;s major unit ($ or ₹).
+        </span>
+      </label>
+
       <div className="grid-2">
         <label>
-          Monthly price (USD)
+          Monthly price
           <input
             type="number"
             name="priceMonthlyUsd"
@@ -101,7 +113,7 @@ export default function PlanForm({ plan, action, error, customForUserId, customF
           />
         </label>
         <label>
-          Yearly price (USD)
+          Yearly price
           <input
             type="number"
             name="priceYearlyUsd"

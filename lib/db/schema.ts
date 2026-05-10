@@ -87,6 +87,8 @@ export const pricingPlans = pgTable(
     razorpayPlanIdYearly: text("razorpay_plan_id_yearly"),
     sortOrder: integer("sort_order").notNull().default(0),
     visible: boolean("visible").notNull().default(true),
+    /** ISO 4217 — 'USD' or 'INR'. Razorpay plan + checkout currency. */
+    currency: text("currency").notNull().default("USD"),
     /**
      * If set, this plan is private — only the named user sees it on the
      * public pricing page and in their dashboard. NULL = global plan.
@@ -188,6 +190,8 @@ export const invoices = pgTable(
     razorpayInvoiceId: text("razorpay_invoice_id"),
     razorpayPaymentId: text("razorpay_payment_id"),
     razorpayOrderId: text("razorpay_order_id"),
+    /** Razorpay-hosted invoice page; doubles as the customer-facing PDF download. */
+    razorpayShortUrl: text("razorpay_short_url"),
 
     amountCents: integer("amount_cents").notNull(),
     currency: text("currency").notNull().default("USD"),
@@ -315,6 +319,32 @@ export const webhookEvents = pgTable(
 );
 
 /**
+ * email_verifications — short-lived OTP codes used to verify a visitor's
+ * email before they can complete public checkout. The code itself is stored
+ * as a sha256 hash so a DB leak doesn't expose live codes; we also track
+ * attempts to thwart brute force.
+ */
+export const emailVerifications = pgTable(
+  "email_verifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    codeHash: text("code_hash").notNull(),
+    purpose: text("purpose").notNull().default("checkout"),
+    attemptsRemaining: integer("attempts_remaining").notNull().default(5),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    ipAddress: text("ip_address"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("email_verifications_email_idx").on(t.email, t.createdAt),
+    index("email_verifications_expires_idx").on(t.expiresAt),
+  ],
+);
+
+/**
  * auth_tokens — single-use tokens for invite acceptance and password reset.
  * Token is stored as a sha256 hash so a DB leak doesn't expose live tokens.
  */
@@ -349,6 +379,8 @@ export type UsageEvent = typeof usageEvents.$inferSelect;
 export type NewUsageEvent = typeof usageEvents.$inferInsert;
 export type UsageCounter = typeof usageCounters.$inferSelect;
 export type NewUsageCounter = typeof usageCounters.$inferInsert;
+export type EmailVerification = typeof emailVerifications.$inferSelect;
+export type NewEmailVerification = typeof emailVerifications.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Contact = typeof contacts.$inferSelect;

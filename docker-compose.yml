@@ -1,0 +1,28 @@
+services:
+  sepnexus-web:
+    build: .
+    image: sepnexus-web:latest
+    container_name: sepnexus-web
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - root_default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=root_default"
+      # Primary apex + www. PUBLIC_HOST is read from .env at compose-render time.
+      - "traefik.http.routers.sepnexus-web.rule=Host(`${PUBLIC_HOST}`) || Host(`www.${PUBLIC_HOST}`)"
+      - "traefik.http.routers.sepnexus-web.entrypoints=web,websecure"
+      - "traefik.http.routers.sepnexus-web.tls=true"
+      - "traefik.http.routers.sepnexus-web.tls.certresolver=mytlschallenge"
+      - "traefik.http.services.sepnexus-web.loadbalancer.server.port=80"
+      # Redirect www → apex so we have a single canonical host.
+      - "traefik.http.middlewares.sepnexus-www-redirect.redirectregex.regex=^https?://www\\.(.+)"
+      - "traefik.http.middlewares.sepnexus-www-redirect.redirectregex.replacement=https://$$1"
+      - "traefik.http.middlewares.sepnexus-www-redirect.redirectregex.permanent=true"
+      - "traefik.http.routers.sepnexus-web.middlewares=sepnexus-www-redirect"
+
+networks:
+  root_default:
+    external: true

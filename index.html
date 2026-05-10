@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sepnexus — The infrastructure of intelligent work.</title>
+<link rel="icon" href="/assets/sepnexus-mark.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="intro" id="intro">
+  <div class="intro-inner">
+    <img class="intro-mark" src="/assets/sepnexus-mark.png" alt="Sepnexus" />
+    <div class="intro-word"><span>S E P N E X U S</span></div>
+    <div class="intro-bar"></div>
+    <div class="intro-loader">Initialising agentic systems</div>
+  </div>
+</div>
+<div class="orbs"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div><div class="orb o4"></div></div>
+<div class="syscursor" id="syscursor" data-mode="idle">
+  <svg viewBox="0 0 60 60" aria-hidden="true">
+    <g class="brackets" stroke="currentColor" fill="none" stroke-width="1.4" stroke-linecap="round">
+      <path d="M6 14 V6 H14"/>
+      <path d="M46 6 H54 V14"/>
+      <path d="M54 46 V54 H46"/>
+      <path d="M14 54 H6 V46"/>
+    </g>
+    <g class="loop" stroke="currentColor" fill="none" stroke-width="1.2" stroke-linecap="round">
+      <circle cx="30" cy="30" r="9"/>
+    </g>
+    <g class="dot"><circle cx="30" cy="30" r="2.4" fill="currentColor"/></g>
+    <text class="tag" x="30" y="33" text-anchor="middle" fill="currentColor" font-family="ui-monospace,monospace" font-size="6" letter-spacing="1.2">VIEW</text>
+  </svg>
+</div>
+<div class="side-progress" id="side-progress"></div>
+<div class="grain"></div>
+<div id="app"></div>
+<script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

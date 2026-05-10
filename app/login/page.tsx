@@ -18,7 +18,19 @@ export default function LoginPage() {
         </Suspense>
         <p
           style={{
-            marginTop: 28,
+            marginTop: 18,
+            fontSize: 13,
+            color: "var(--muted)",
+            textAlign: "right",
+          }}
+        >
+          <a href="/forgot" style={{ color: "var(--ink-2)" }}>
+            Forgot password?
+          </a>
+        </p>
+        <p
+          style={{
+            marginTop: 18,
             fontSize: 13,
             color: "var(--muted)",
             paddingTop: 18,

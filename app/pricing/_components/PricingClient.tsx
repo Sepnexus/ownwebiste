@@ -14,14 +14,15 @@ const CATEGORY_META: Record<
       "Built on the world's most flexible automation platform. Choose shared for cost, dedicated for isolation and queue mode.",
     accent: "var(--c-magenta)",
   },
-  hosting: {
-    title: "Managed web hosting",
-    subtitle: "We host the apps and marketing sites your business runs on. SSL + backups + on-call included.",
+  saas: {
+    title: "Managed SaaS hosting",
+    subtitle:
+      "We deploy and operate the infrastructure your SaaS application runs on — managed databases, monitoring, deploys, on-call. You ship product.",
     accent: "var(--c-cyan)",
   },
 };
 
-const CATEGORY_ORDER = ["n8n", "hosting"];
+const CATEGORY_ORDER = ["n8n", "saas"];
 
 function format(usd: number) {
   return `$${usd.toLocaleString("en-US")}`;
@@ -100,10 +101,7 @@ export default function PricingClient({ plans }: { plans: PricingPlan[] }) {
                     )}
                     <ul>
                       {features.map((f) => (
-                        <li key={f}>
-                          <span />
-                          <span>{f}</span>
-                        </li>
+                        <li key={f}>{f}</li>
                       ))}
                     </ul>
                     <div className="cta">

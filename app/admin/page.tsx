@@ -1,156 +1,144 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import Link from "next/link";
-import { currentUser } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
-import { desc, sql, isNull } from "drizzle-orm";
+import { desc, sql, isNull, and, gte, lt } from "drizzle-orm";
 
 export const metadata: Metadata = {
-  title: "Admin",
+  title: "Admin · Inbox",
 };
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const user = await currentUser();
-  if (!user) redirect("/login?next=/admin");
-  if (user.role !== "admin") redirect("/dashboard");
+  const last24h = new Date(Date.now() - 1000 * 60 * 60 * 24);
 
-  const [recentContacts, [{ openCount }], [{ totalCount }]] = await Promise.all([
+  const [recent, [openCounts], [totalCounts], [todayCounts]] = await Promise.all([
     db
       .select()
       .from(schema.contacts)
       .orderBy(desc(schema.contacts.createdAt))
-      .limit(10),
+      .limit(20),
     db
-      .select({ openCount: sql<number>`count(*)::int` })
+      .select({ count: sql<number>`count(*)::int` })
       .from(schema.contacts)
       .where(isNull(schema.contacts.handledAt)),
     db
-      .select({ totalCount: sql<number>`count(*)::int` })
+      .select({ count: sql<number>`count(*)::int` })
       .from(schema.contacts),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.contacts)
+      .where(and(gte(schema.contacts.createdAt, last24h), lt(schema.contacts.createdAt, new Date()))),
   ]);
 
   return (
-    <main className="page">
-      <div className="page-narrow">
-        <span className="page-eyebrow">Admin</span>
-        <h1 className="page-title">
-          The <em>control plane.</em>
-        </h1>
-        <p className="page-lede">
-          Phase 1 ships the contact inbox. Customer accounts, pricing CRUD, portfolio CRUD and
-          subscription management arrive in the next phases.
-        </p>
+    <>
+      <h1>Inbox</h1>
+      <p className="admin-subtitle">
+        Contact form submissions, access requests, project inquiries.
+      </p>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 16,
-            marginBottom: 32,
-          }}
-        >
-          {[
-            { k: "Open contacts", v: openCount.toString(), accent: "var(--c-magenta)" },
-            { k: "Total submissions", v: totalCount.toString(), accent: "var(--c-cyan)" },
-            { k: "You", v: user.email, accent: "var(--c-yellow)" },
-          ].map((row) => (
-            <div
-              key={row.k}
-              style={{
-                border: "1px solid var(--line)",
-                borderRadius: 16,
-                padding: 24,
-                background: "rgba(255,255,255,0.6)",
-                borderTop: `2px solid ${row.accent}`,
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: "var(--mono)",
-                  fontSize: 11,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: "var(--muted)",
-                  marginBottom: 8,
-                }}
-              >
-                {row.k}
-              </div>
-              <div style={{ fontSize: 22, color: "var(--ink)", fontFamily: "var(--serif)" }}>
-                {row.v}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <h2
-          style={{
-            fontFamily: "var(--serif)",
-            fontWeight: 400,
-            fontSize: 32,
-            letterSpacing: "-0.015em",
-            margin: "0 0 16px",
-            color: "var(--ink)",
-          }}
-        >
-          Recent inbox
-        </h2>
-        {recentContacts.length === 0 ? (
-          <p style={{ color: "var(--muted)" }}>No submissions yet.</p>
-        ) : (
-          <div
-            style={{
-              border: "1px solid var(--line)",
-              borderRadius: 16,
-              overflow: "hidden",
-              background: "rgba(255,255,255,0.6)",
-            }}
-          >
-            {recentContacts.map((c, i) => (
-              <Link
-                key={c.id}
-                href={`/admin/contacts/${c.id}`}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "120px 1fr auto",
-                  gap: 16,
-                  padding: "16px 20px",
-                  borderTop: i === 0 ? "none" : "1px solid var(--line)",
-                  color: "var(--ink-2)",
-                  textDecoration: "none",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--mono)",
-                    fontSize: 11,
-                    color: c.handledAt ? "var(--muted)" : "var(--c-magenta)",
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {c.type.replaceAll("_", " ")}
-                </span>
-                <span>
-                  <strong style={{ color: "var(--ink)" }}>{c.name}</strong>{" "}
-                  <span style={{ color: "var(--muted)" }}>· {c.email}</span>
-                </span>
-                <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--muted)" }}>
-                  {new Date(c.createdAt).toLocaleDateString()}
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-
-        <form action="/api/logout" method="POST" style={{ marginTop: 40 }}>
-          <button type="submit" className="btn btn-outline">
-            Sign out
-          </button>
-        </form>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 14,
+          marginBottom: 32,
+        }}
+      >
+        <Stat label="Open" value={openCounts.count.toString()} accent="var(--c-magenta)" />
+        <Stat label="Last 24h" value={todayCounts.count.toString()} accent="var(--c-yellow)" />
+        <Stat label="All time" value={totalCounts.count.toString()} accent="var(--c-cyan)" />
       </div>
-    </main>
+
+      <h2 style={{ marginTop: 0 }}>Recent submissions</h2>
+      {recent.length === 0 ? (
+        <p style={{ color: "var(--muted)" }}>No submissions yet.</p>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th style={{ width: 130 }}>Type</th>
+              <th>From</th>
+              <th style={{ width: 120 }}>Status</th>
+              <th style={{ width: 150 }}>When</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recent.map((c) => (
+              <tr key={c.id}>
+                <td>
+                  <span className="pill">{c.type.replaceAll("_", " ")}</span>
+                </td>
+                <td>
+                  <Link
+                    href={`/admin/contacts/${c.id}`}
+                    style={{ color: "var(--ink)", textDecoration: "none" }}
+                  >
+                    <strong>{c.name}</strong>{" "}
+                    <span style={{ color: "var(--muted)" }}>· {c.email}</span>
+                  </Link>
+                </td>
+                <td>
+                  {c.handledAt ? (
+                    <span className="pill draft">handled</span>
+                  ) : (
+                    <span className="pill live">open</span>
+                  )}
+                </td>
+                <td style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--muted)" }}>
+                  {new Date(c.createdAt).toLocaleString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent: string;
+}) {
+  return (
+    <div
+      style={{
+        border: "1px solid var(--line)",
+        borderTop: `2px solid ${accent}`,
+        borderRadius: 12,
+        padding: "18px 20px",
+        background: "rgba(255,255,255,0.6)",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "var(--mono)",
+          fontSize: 11,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "var(--muted)",
+          marginBottom: 6,
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontFamily: "var(--serif)",
+          fontSize: 32,
+          letterSpacing: "-0.01em",
+          color: "var(--ink)",
+        }}
+      >
+        {value}
+      </div>
+    </div>
   );
 }

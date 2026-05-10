@@ -102,6 +102,47 @@ export default function SiteChrome() {
     });
   }, [pathname]);
 
+  // Reveal-on-scroll for `.reveal` and `.reveal-line` elements anywhere on the page.
+  // Re-binds whenever the route changes so client navigations pick up new elements.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    // Wait one frame so server-rendered + hydrated DOM is in place.
+    const t = setTimeout(() => {
+      if (cancelled) return;
+      const els = document.querySelectorAll<HTMLElement>(".reveal, .reveal-line");
+      if (!els.length) return;
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add("in");
+              io.unobserve(e.target);
+            }
+          });
+        },
+        { threshold: 0.18, rootMargin: "0px 0px -10% 0px" },
+      );
+      // If an element is already on-screen at first paint (above the fold),
+      // mark it `.in` immediately rather than waiting for a scroll.
+      els.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        const visible = r.top < window.innerHeight * 0.95 && r.bottom > 0;
+        if (visible) el.classList.add("in");
+        else io.observe(el);
+      });
+      // Clean up via a side-channel:
+      (window as Window & { __snReveal?: IntersectionObserver }).__snReveal?.disconnect();
+      (window as Window & { __snReveal?: IntersectionObserver }).__snReveal = io;
+    }, 30);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+      (window as Window & { __snReveal?: IntersectionObserver }).__snReveal?.disconnect();
+    };
+  }, [pathname]);
+
   return (
     <>
       <div className="intro" ref={introRef}>

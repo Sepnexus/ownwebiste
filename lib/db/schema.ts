@@ -124,6 +124,31 @@ export const portfolioEntries = pgTable(
   ],
 );
 
+/**
+ * auth_tokens — single-use tokens for invite acceptance and password reset.
+ * Token is stored as a sha256 hash so a DB leak doesn't expose live tokens.
+ */
+export const authTokens = pgTable(
+  "auth_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("auth_tokens_hash_uniq").on(t.tokenHash),
+    index("auth_tokens_user_kind_idx").on(t.userId, t.kind),
+  ],
+);
+
+export type AuthToken = typeof authTokens.$inferSelect;
+export type NewAuthToken = typeof authTokens.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Contact = typeof contacts.$inferSelect;

@@ -33,6 +33,25 @@ export default async function AdminPricingPage() {
           + New plan
         </Link>
       </div>
+      <div
+        style={{
+          padding: "10px 14px",
+          borderRadius: 10,
+          background: "linear-gradient(90deg, rgba(177,73,153,0.06), rgba(43,182,224,0.06))",
+          border: "1px solid var(--line)",
+          fontSize: 13,
+          color: "var(--ink-2)",
+          marginBottom: 24,
+        }}
+      >
+        <strong style={{ color: "var(--ink)" }}>Custom plans?</strong> Open the{" "}
+        <Link href="/admin/customers" style={{ color: "var(--ink)" }}>
+          customer
+        </Link>{" "}
+        you want to issue a private plan to and use the &ldquo;Custom plans&rdquo; section on
+        their detail page. Custom plans are visible only on that customer&apos;s dashboard,
+        never on the public site.
+      </div>
 
       {plans.length === 0 ? (
         <p style={{ color: "var(--muted)" }}>No plans yet. Create one to get started.</p>

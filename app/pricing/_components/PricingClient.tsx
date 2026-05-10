@@ -105,12 +105,21 @@ export default function PricingClient({ plans }: { plans: PricingPlan[] }) {
                       ))}
                     </ul>
                     <div className="cta">
-                      <Link
-                        href={`/contact?type=request_access&plan=${encodeURIComponent(p.slug)}&period=${period}`}
-                        className={p.highlight ? "btn btn-solid" : "btn btn-outline"}
-                      >
-                        Request invite
-                      </Link>
+                      {(period === "monthly" ? p.razorpayPlanIdMonthly : p.razorpayPlanIdYearly) ? (
+                        <Link
+                          href={`/subscribe?planId=${p.id}&period=${period}`}
+                          className={p.highlight ? "btn btn-solid" : "btn btn-outline"}
+                        >
+                          Subscribe → ${price}
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/contact?type=request_access&plan=${encodeURIComponent(p.slug)}&period=${period}`}
+                          className={p.highlight ? "btn btn-solid" : "btn btn-outline"}
+                        >
+                          Request invite
+                        </Link>
+                      )}
                     </div>
                   </article>
                 );

@@ -199,6 +199,53 @@ export async function notifyAdminPaymentFailed(args: {
   });
 }
 
+/**
+ * Sent after a customer pays via the public /subscribe flow. Their account
+ * exists but has no password yet — this magic link is the activation step.
+ */
+export async function sendWelcomePostPaymentEmail(args: {
+  to: string;
+  name: string | null;
+  acceptUrl: string;
+  planName: string;
+  amountUsd: number;
+  period: string;
+}) {
+  const greeting = args.name ? `Hi ${escapeHtml(args.name.split(" ")[0] || args.name)},` : "Hi,";
+  const body = `
+    <p style="margin:0 0 14px;">${greeting}</p>
+    <p style="margin:0 0 16px;">
+      Welcome to Sepnexus. Your <strong>${escapeHtml(args.planName)}</strong> subscription is
+      active — you were charged <strong>$${args.amountUsd.toLocaleString()} ${escapeHtml(args.period)}</strong>.
+    </p>
+    <p style="margin:0 0 16px;">
+      One last step: click below to set a password and log in to your dashboard. The link is
+      good for 7 days.
+    </p>
+    <p style="margin:0 0 24px;">
+      <a href="${args.acceptUrl}" style="display:inline-block;background:#14110f;color:#f6f3ec;text-decoration:none;padding:12px 22px;border-radius:999px;font-family:-apple-system,sans-serif;font-size:14px;font-weight:500;">
+        Set password &amp; sign in →
+      </a>
+    </p>
+    <p style="margin:0 0 12px;font-size:13px;color:#6b6660;">
+      Or paste this link into your browser:<br>
+      <span style="font-family:ui-monospace,monospace;font-size:12px;color:#2a2520;word-break:break-all;">${escapeHtml(args.acceptUrl)}</span>
+    </p>
+    <p style="margin:24px 0 0;font-size:13px;color:#6b6660;">
+      Receipt and invoice will arrive separately from Razorpay.
+    </p>
+  `;
+  return sendEmail({
+    to: args.to,
+    subject: "Welcome to Sepnexus — set your password",
+    html: emailLayout({
+      title: "Welcome to Sepnexus",
+      preheader: `Set your password — ${args.planName} active.`,
+      bodyHtml: body,
+    }),
+  });
+}
+
 export async function sendInviteEmail(args: {
   to: string;
   name: string | null;

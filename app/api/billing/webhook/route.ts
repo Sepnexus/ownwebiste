@@ -7,7 +7,9 @@ import {
   notifyAdminSubscriptionCancelled,
   notifyAdminPaymentReceived,
   notifyAdminPaymentFailed,
+  sendWelcomePostPaymentEmail,
 } from "@/lib/email-templates";
+import { issueAuthToken } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -158,6 +160,12 @@ async function dispatch(p: WebhookPayload) {
       }
       if (p.event === "subscription.activated" && sub) {
         void notifySubscriptionStarted(sub.id);
+        // Self-serve signups have no password yet — issue an invite-style
+        // magic link and welcome them. Idempotent by design: if the user
+        // already has a password, the welcome email is skipped.
+        void maybeWelcomeSelfServeUser(sub.id).catch((e) =>
+          console.error("[webhook] welcome email failed:", e),
+        );
       }
       if (p.event === "subscription.cancelled" && sub) {
         void notifySubscriptionCancelled(sub.id);
@@ -217,6 +225,41 @@ async function dispatch(p: WebhookPayload) {
     default:
       break;
   }
+}
+
+async function maybeWelcomeSelfServeUser(rzpSubId: string) {
+  const [row] = await db
+    .select({ sub: schema.subscriptions, user: schema.users, plan: schema.pricingPlans })
+    .from(schema.subscriptions)
+    .leftJoin(schema.users, eq(schema.users.id, schema.subscriptions.userId))
+    .leftJoin(schema.pricingPlans, eq(schema.pricingPlans.id, schema.subscriptions.planId))
+    .where(eq(schema.subscriptions.razorpaySubscriptionId, rzpSubId))
+    .limit(1);
+  if (!row?.user || !row?.plan) return;
+  // Only welcome users who haven't set a password yet (self-serve signups).
+  if (row.user.passwordHash) return;
+  if (row.user.inviteAcceptedAt) return;
+
+  const { plain } = await issueAuthToken({ userId: row.user.id, kind: "invite" });
+  const base = process.env.PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const acceptUrl = `${base}/invite/${plain}`;
+
+  // Mark invitedAt so it shows up in admin as a known invite, even though
+  // they came in through self-serve.
+  await db
+    .update(schema.users)
+    .set({ invitedAt: new Date(), updatedAt: new Date() })
+    .where(eq(schema.users.id, row.user.id));
+
+  await sendWelcomePostPaymentEmail({
+    to: row.user.email,
+    name: row.user.name,
+    acceptUrl,
+    planName: row.plan.name,
+    amountUsd:
+      row.sub.period === "yearly" ? row.plan.priceYearlyUsd : row.plan.priceMonthlyUsd,
+    period: row.sub.period,
+  });
 }
 
 async function notifySubscriptionStarted(rzpSubId: string) {

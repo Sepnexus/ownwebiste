@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { db, schema } from "@/lib/db";
 import { sendEmail, emailLayout } from "@/lib/email";
+import { rateLimit, clientIp, tooManyResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +21,11 @@ const Body = z.object({
 });
 
 export async function POST(req: Request) {
+  // 10 contact submissions per IP per 10 minutes is generous for humans;
+  // crushes spam bots.
+  const rl = rateLimit({ key: `${clientIp(req)}:contact`, limit: 10, windowMs: 10 * 60_000 });
+  if (!rl.allowed) return tooManyResponse(rl);
+
   let parsed: z.infer<typeof Body>;
   try {
     parsed = Body.parse(await req.json());

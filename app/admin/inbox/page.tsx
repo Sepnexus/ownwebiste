@@ -9,15 +9,34 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminInboxPage() {
-  const last24h = new Date(Date.now() - 1000 * 60 * 60 * 24);
+const PAGE_SIZE = 25;
 
-  const [recent, [openCounts], [totalCounts], [todayCounts]] = await Promise.all([
+export default async function AdminInboxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; page?: string }>;
+}) {
+  const sp = await searchParams;
+  const q = (sp.q ?? "").trim();
+  const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const last24h = new Date(Date.now() - 1000 * 60 * 60 * 24);
+  const where = q
+    ? sql`(${schema.contacts.name} ILIKE ${"%" + q + "%"}
+          OR ${schema.contacts.email} ILIKE ${"%" + q + "%"}
+          OR ${schema.contacts.message} ILIKE ${"%" + q + "%"})`
+    : sql`true`;
+
+  const [recent, [{ total }], [openCounts], [totalCounts], [todayCounts]] = await Promise.all([
     db
       .select()
       .from(schema.contacts)
+      .where(where)
       .orderBy(desc(schema.contacts.createdAt))
-      .limit(20),
+      .limit(PAGE_SIZE)
+      .offset(offset),
+    db.select({ total: sql<number>`count(*)::int` }).from(schema.contacts).where(where),
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.contacts)
@@ -30,6 +49,7 @@ export default async function AdminInboxPage() {
       .from(schema.contacts)
       .where(and(gte(schema.contacts.createdAt, last24h), lt(schema.contacts.createdAt, new Date()))),
   ]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
@@ -52,8 +72,38 @@ export default async function AdminInboxPage() {
       </div>
 
       <h2 style={{ marginTop: 0 }}>Recent submissions</h2>
+      <form
+        action="/admin/inbox"
+        method="GET"
+        style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}
+      >
+        <input
+          type="search"
+          name="q"
+          defaultValue={q}
+          placeholder="Search name, email, or message…"
+          style={{
+            flex: 1,
+            minWidth: 240,
+            padding: "10px 14px",
+            border: "1px solid var(--line)",
+            borderRadius: 10,
+            fontFamily: "var(--sans)",
+            fontSize: 14,
+            background: "rgba(255,255,255,0.6)",
+          }}
+        />
+        <button type="submit" className="btn btn-outline">
+          Search
+        </button>
+        {q && (
+          <Link href="/admin/inbox" className="btn btn-ghost">
+            Clear
+          </Link>
+        )}
+      </form>
       {recent.length === 0 ? (
-        <p style={{ color: "var(--muted)" }}>No submissions yet.</p>
+        <p style={{ color: "var(--muted)" }}>{q ? "No matches." : "No submissions yet."}</p>
       ) : (
         <table className="admin-table">
           <thead>
@@ -93,6 +143,42 @@ export default async function AdminInboxPage() {
             ))}
           </tbody>
         </table>
+      )}
+      {totalPages > 1 && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: 18,
+            color: "var(--muted)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Page {page} of {totalPages} · {total.toLocaleString()} total
+          </span>
+          <div style={{ display: "flex", gap: 6 }}>
+            {page > 1 && (
+              <Link
+                href={`/admin/inbox?page=${page - 1}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+                className="btn btn-outline"
+                style={{ padding: "6px 12px", fontSize: 12 }}
+              >
+                ← Newer
+              </Link>
+            )}
+            {page < totalPages && (
+              <Link
+                href={`/admin/inbox?page=${page + 1}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+                className="btn btn-outline"
+                style={{ padding: "6px 12px", fontSize: 12 }}
+              >
+                Older →
+              </Link>
+            )}
+          </div>
+        </div>
       )}
     </>
   );

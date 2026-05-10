@@ -32,7 +32,7 @@ function authHeader(): string {
 }
 
 async function rzp<T>(
-  method: "GET" | "POST" | "PUT" | "DELETE",
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
   path: string,
   body?: unknown,
 ): Promise<T> {
@@ -177,6 +177,35 @@ export async function cancelSubscription(
   return rzp<RzpSubscription>("POST", `/subscriptions/${id}/cancel`, {
     cancel_at_cycle_end: atCycleEnd ? 1 : 0,
   });
+}
+
+/**
+ * Schedule a switch to a different plan at the next billing cycle, or undo
+ * a previously scheduled change. Used for customer-initiated plan upgrades.
+ */
+export async function updateSubscription(
+  id: string,
+  args: {
+    planId?: string;
+    quantity?: number;
+    scheduleChangeAt?: "now" | "cycle_end";
+    customerNotify?: boolean;
+  },
+): Promise<RzpSubscription> {
+  const body: Record<string, unknown> = {};
+  if (args.planId) body.plan_id = args.planId;
+  if (args.quantity != null) body.quantity = args.quantity;
+  if (args.scheduleChangeAt) body.schedule_change_at = args.scheduleChangeAt;
+  if (args.customerNotify != null) body.customer_notify = args.customerNotify ? 1 : 0;
+  return rzp<RzpSubscription>("PATCH", `/subscriptions/${id}`, body);
+}
+
+/**
+ * Drop a previously-scheduled change (a queued plan switch or the
+ * cancel-at-cycle-end flag set by a customer who wants to resume).
+ */
+export async function cancelScheduledChange(id: string): Promise<RzpSubscription> {
+  return rzp<RzpSubscription>("POST", `/subscriptions/${id}/cancel_scheduled_changes`);
 }
 
 /* ============== Subscription addons (overage billing) ============== */

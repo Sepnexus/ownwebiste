@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 
 const PlanInput = z.object({
   slug: z
@@ -59,7 +60,7 @@ function featuresFromText(text: string): string[] {
 }
 
 export async function createPlan(formData: FormData) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = PlanInput.safeParse(normalize(formData));
   if (!parsed.success) bail("/admin/pricing/new", parsed.error.issues[0]?.message ?? "Invalid input");
 
@@ -97,6 +98,19 @@ export async function createPlan(formData: FormData) {
     bail("/admin/pricing/new", `Failed to create plan: ${msg}`);
   }
 
+  void audit({
+    actor: { userId: admin.id, email: admin.email },
+    action: "plan.create",
+    targetType: "pricing_plan",
+    targetId: createdPlanId ?? undefined,
+    details: {
+      slug: parsed.data.slug,
+      name: parsed.data.name,
+      currency: parsed.data.currency ?? "USD",
+      customForUserId: parsed.data.customForUserId ?? null,
+    },
+  });
+
   revalidatePath("/admin/pricing");
   revalidatePath("/pricing");
   if (parsed.data.customForUserId) {
@@ -108,7 +122,7 @@ export async function createPlan(formData: FormData) {
 }
 
 export async function updatePlan(formData: FormData) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id) bail("/admin/pricing", "Missing plan id.");
 
@@ -155,10 +169,16 @@ export async function updatePlan(formData: FormData) {
 }
 
 export async function deletePlan(formData: FormData) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await db.delete(schema.pricingPlans).where(eq(schema.pricingPlans.id, id));
+  void audit({
+    actor: { userId: admin.id, email: admin.email },
+    action: "plan.delete",
+    targetType: "pricing_plan",
+    targetId: id,
+  });
   revalidatePath("/admin/pricing");
   revalidatePath("/pricing");
 }

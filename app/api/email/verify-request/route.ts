@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { issueOtp } from "@/lib/otp";
 import { sendOtpEmail } from "@/lib/email-templates";
+import { rateLimit, clientIp, tooManyResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,6 +12,12 @@ const Body = z.object({
 });
 
 export async function POST(req: Request) {
+  // 10 OTP requests per IP per hour. Stops attackers cycling emails to
+  // spam-send OTPs from our domain. Per-email cooldown is enforced separately
+  // by issueOtp().
+  const rl = rateLimit({ key: `${clientIp(req)}:otp-req`, limit: 10, windowMs: 60 * 60_000 });
+  if (!rl.allowed) return tooManyResponse(rl);
+
   let parsed: z.infer<typeof Body>;
   try {
     parsed = Body.parse(await req.json());

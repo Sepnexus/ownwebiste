@@ -310,6 +310,71 @@ When you're ready to take real money:
 
 ---
 
+## Operational hardening (do these on launch day, not later)
+
+### Postgres backups (off-host pg_dump)
+
+The Postgres container's volume lives on the VPS disk. If the VPS dies, the
+data goes with it. Run a daily `pg_dump` to a separate destination (S3,
+Backblaze B2, another box). Minimum:
+
+```bash
+# /etc/cron.daily/sepnexus-pg-dump (chmod +x)
+#!/bin/bash
+set -e
+TS=$(date -u +%Y-%m-%dT%H-%M-%SZ)
+docker exec postgresql pg_dump -U sepnexus -Fc sepnexus > /var/backups/sepnexus-$TS.dump
+# Keep 14 days of local copies
+find /var/backups -name 'sepnexus-*.dump' -mtime +14 -delete
+# Off-host copy — pick one:
+# rclone copy /var/backups/sepnexus-$TS.dump backblaze:sepnexus-backups/
+# aws s3 cp /var/backups/sepnexus-$TS.dump s3://sepnexus-backups/
+```
+
+Test the restore once a month:
+
+```bash
+docker exec -i postgresql pg_restore -U sepnexus -d sepnexus_restore_test < /var/backups/sepnexus-DATE.dump
+```
+
+If it doesn't restore cleanly, the backup is worthless. Catch this before
+you need it.
+
+### Uptime monitoring
+
+`/api/health` returns 200 only when Postgres is reachable. Wire it into:
+
+- Better Stack (uptimerobot.com works too): create a monitor pointing at
+  `https://sepnexus.com/api/health`, alert on 1 failed check, ping every
+  60 seconds. Notify your phone.
+
+### 2FA + admin password
+
+After you log in for the first time post-deploy:
+
+1. Change your admin password from `Qwerty@123` (top of `/admin/account`).
+2. Enable 2FA from the same page — scan the QR code with Google
+   Authenticator / 1Password / Authy. Save the 8 recovery codes somewhere
+   safe (1Password's secure note is fine).
+3. Without 2FA, your single password protects MRR + customer data + the
+   ability to issue plans. Just turn it on.
+
+### Rate limiting (already enforced in code)
+
+The following endpoints have built-in IP-based limits:
+
+| Endpoint | Limit |
+|---|---|
+| `POST /api/contact` | 10 per IP per 10 min |
+| `POST /api/email/verify-request` | 10 per IP per hour (plus per-email cooldown) |
+| `POST /api/login` | 10 per IP per 10 min |
+
+These are in-memory limits — they reset when the container restarts. Fine
+for our single-instance deployment. If we ever go multi-replica, swap
+`lib/rate-limit.ts` for a Redis-backed version.
+
+---
+
 ## Updating later
 
 ```bash

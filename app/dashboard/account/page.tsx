@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { z } from "zod";
+import DataControls from "./_components/DataControls";
 
 export const metadata: Metadata = { title: "Account" };
 export const dynamic = "force-dynamic";
@@ -117,6 +118,8 @@ export default async function CustomerAccountPage({
           <button type="submit" className="btn btn-solid">Update password</button>
         </div>
       </form>
+
+      <DataControls />
     </DashboardShell>
   );
 }

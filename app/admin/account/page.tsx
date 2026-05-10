@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth";
 import { changePassword, updateProfile } from "./_actions";
+import TwoFactor from "./_components/TwoFactor";
 
 export const metadata: Metadata = { title: "Admin · Account" };
 export const dynamic = "force-dynamic";
@@ -38,6 +39,9 @@ export default async function AccountPage({
           </button>
         </div>
       </form>
+
+      <h2>Two-factor authentication</h2>
+      <TwoFactor enabled={admin.totpEnabled} enabledAt={admin.totpEnabledAt} />
 
       <h2>Change password</h2>
       <form action={changePassword} className="admin-form">

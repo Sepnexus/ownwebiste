@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db, schema } from "@/lib/db";
 import { issueAuthToken, requireAdmin } from "@/lib/auth";
 import { sendInviteEmail, notifyAdminInviteSent } from "@/lib/email-templates";
+import { audit } from "@/lib/audit";
 
 const InviteInput = z.object({
   email: z.string().trim().email().max(254),
@@ -84,6 +85,14 @@ export async function inviteCustomer(formData: FormData) {
     console.error("[invite] admin notify failed:", e),
   );
 
+  void audit({
+    actor: { userId: admin.id, email: admin.email },
+    action: "customer.invite",
+    targetType: "user",
+    targetId: userId,
+    details: { email, name },
+  });
+
   revalidatePath("/admin/customers");
 
   if (!sent.ok) {
@@ -134,14 +143,21 @@ export async function resendInvite(formData: FormData) {
 }
 
 export async function deleteCustomer(formData: FormData) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 
-  // Soft-delete only; we may want to retain the row for audit.
   await db
     .update(schema.users)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
     .where(eq(schema.users.id, id));
+
+  void audit({
+    actor: { userId: admin.id, email: admin.email },
+    action: "customer.soft_delete",
+    targetType: "user",
+    targetId: id,
+  });
+
   revalidatePath("/admin/customers");
 }

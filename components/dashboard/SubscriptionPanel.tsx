@@ -44,6 +44,23 @@ export default function SubscriptionPanel({
     });
   }
 
+  function resume() {
+    setErr(null);
+    startTransition(async () => {
+      const r = await fetch("/api/billing/resume", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ subscriptionId }),
+      });
+      const body = (await r.json()) as { ok?: boolean; error?: string };
+      if (!r.ok || !body.ok) {
+        setErr(body.error ?? "Resume failed.");
+        return;
+      }
+      router.refresh();
+    });
+  }
+
   const live = ["authenticated", "active"].includes(status);
   const closed = ["cancelled", "expired", "completed", "halted"].includes(status);
 
@@ -148,9 +165,28 @@ export default function SubscriptionPanel({
           </button>
         )}
         {cancelAtPeriodEnd && (
-          <span style={{ color: "var(--c-red)", fontSize: 13, fontFamily: "var(--mono)" }}>
-            Cancellation scheduled for end of period.
-          </span>
+          <>
+            <span style={{ color: "var(--c-red)", fontSize: 13, fontFamily: "var(--mono)" }}>
+              Cancellation scheduled for end of period.
+            </span>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={resume}
+              disabled={pending}
+            >
+              {pending ? "Resuming…" : "Resume subscription"}
+            </button>
+          </>
+        )}
+        {live && (
+          <a
+            href="/dashboard/change-plan"
+            className="btn btn-outline"
+            style={{ marginLeft: cancelAtPeriodEnd ? 0 : "auto" }}
+          >
+            Change plan
+          </a>
         )}
       </div>
     </div>

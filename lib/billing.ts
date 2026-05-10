@@ -4,7 +4,8 @@ import {
   createPlan as rzpCreatePlan,
   createSubscription as rzpCreateSubscription,
   cancelSubscription as rzpCancelSubscription,
-  fetchSubscription as rzpFetchSubscription,
+  updateSubscription as rzpUpdateSubscription,
+  cancelScheduledChange as rzpCancelScheduledChange,
   type RzpPlanPeriod,
   type RzpSubscription,
 } from "./razorpay";
@@ -197,6 +198,128 @@ export async function cancelUserSubscription(args: {
       status: rzp.status,
       cancelAtPeriodEnd: args.atPeriodEnd,
       cancelledAt: args.atPeriodEnd ? null : new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.subscriptions.id, sub.id))
+    .returning();
+  return updated;
+}
+
+/* ============== Resume + plan change ============== */
+
+/**
+ * Undo a scheduled cancellation. The customer set cancel_at_period_end=true
+ * earlier; they want to keep the subscription. We tell Razorpay to drop the
+ * scheduled change and clear our local flag.
+ */
+export async function resumeUserSubscription(args: {
+  userId: string;
+  subscriptionId: string;
+}): Promise<Subscription> {
+  const [sub] = await db
+    .select()
+    .from(schema.subscriptions)
+    .where(
+      and(
+        eq(schema.subscriptions.id, args.subscriptionId),
+        eq(schema.subscriptions.userId, args.userId),
+      ),
+    )
+    .limit(1);
+  if (!sub) throw new Error("Subscription not found.");
+  if (!sub.cancelAtPeriodEnd) throw new Error("This subscription isn't scheduled to cancel.");
+  if (!sub.razorpaySubscriptionId) {
+    const [updated] = await db
+      .update(schema.subscriptions)
+      .set({ cancelAtPeriodEnd: false, updatedAt: new Date() })
+      .where(eq(schema.subscriptions.id, sub.id))
+      .returning();
+    return updated;
+  }
+
+  const rzp = await rzpCancelScheduledChange(sub.razorpaySubscriptionId);
+  const [updated] = await db
+    .update(schema.subscriptions)
+    .set({
+      cancelAtPeriodEnd: false,
+      cancelledAt: null,
+      status: rzp.status,
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.subscriptions.id, sub.id))
+    .returning();
+  return updated;
+}
+
+/**
+ * Schedule a switch to a different plan (or different period of the same plan)
+ * at the next billing cycle. We only support `cycle_end` for now — `now` would
+ * trigger immediate proration which Razorpay handles but adds UX complexity.
+ */
+export async function changeUserPlan(args: {
+  userId: string;
+  subscriptionId: string;
+  newPlanId: string;
+  newPeriod: Period;
+}): Promise<Subscription> {
+  const [sub] = await db
+    .select()
+    .from(schema.subscriptions)
+    .where(
+      and(
+        eq(schema.subscriptions.id, args.subscriptionId),
+        eq(schema.subscriptions.userId, args.userId),
+      ),
+    )
+    .limit(1);
+  if (!sub) throw new Error("Subscription not found.");
+
+  const [newPlan] = await db
+    .select()
+    .from(schema.pricingPlans)
+    .where(eq(schema.pricingPlans.id, args.newPlanId))
+    .limit(1);
+  if (!newPlan) throw new Error("Target plan not found.");
+  if (!newPlan.visible) throw new Error("Target plan is not currently available.");
+
+  const newRzpPlanId = await ensureRazorpayPlanId(newPlan, args.newPeriod);
+
+  if (!sub.razorpaySubscriptionId) {
+    // No live Razorpay sub — just update the local pointer.
+    const [updated] = await db
+      .update(schema.subscriptions)
+      .set({
+        planId: newPlan.id,
+        period: args.newPeriod,
+        razorpayPlanId: newRzpPlanId,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.subscriptions.id, sub.id))
+      .returning();
+    return updated;
+  }
+
+  await rzpUpdateSubscription(sub.razorpaySubscriptionId, {
+    planId: newRzpPlanId,
+    scheduleChangeAt: "cycle_end",
+    customerNotify: true,
+  });
+
+  // Don't flip planId locally yet — we wait for subscription.updated webhook to
+  // confirm the change actually took effect at cycle end. We do persist a hint.
+  const meta = (sub.metadata as Record<string, unknown> | null) ?? {};
+  const [updated] = await db
+    .update(schema.subscriptions)
+    .set({
+      metadata: {
+        ...meta,
+        scheduledPlanChange: {
+          newPlanId: newPlan.id,
+          newPeriod: args.newPeriod,
+          newRzpPlanId,
+          scheduledAt: new Date().toISOString(),
+        },
+      },
       updatedAt: new Date(),
     })
     .where(eq(schema.subscriptions.id, sub.id))

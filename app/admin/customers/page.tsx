@@ -1,25 +1,47 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { db, schema } from "@/lib/db";
-import { desc, isNull, eq, and } from "drizzle-orm";
+import { desc, isNull, eq, and, sql } from "drizzle-orm";
 import { inviteCustomer, resendInvite, deleteCustomer } from "./_actions";
 
 export const metadata: Metadata = { title: "Admin · Customers" };
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 25;
+
 export default async function CustomersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; ok?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string; q?: string; page?: string }>;
 }) {
-  const { error, ok } = await searchParams;
+  const sp = await searchParams;
+  const { error, ok } = sp;
+  const q = (sp.q ?? "").trim();
+  const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
 
-  const customers = await db
-    .select()
-    .from(schema.users)
-    .where(
-      and(eq(schema.users.role, "customer"), isNull(schema.users.deletedAt)),
-    )
-    .orderBy(desc(schema.users.createdAt));
+  const baseWhere = and(
+    eq(schema.users.role, "customer"),
+    isNull(schema.users.deletedAt),
+  );
+  const where = q
+    ? and(
+        baseWhere,
+        sql`(${schema.users.email} ILIKE ${"%" + q + "%"} OR ${schema.users.name} ILIKE ${"%" + q + "%"})`,
+      )
+    : baseWhere;
+
+  const [customers, [{ total }]] = await Promise.all([
+    db
+      .select()
+      .from(schema.users)
+      .where(where)
+      .orderBy(desc(schema.users.createdAt))
+      .limit(PAGE_SIZE)
+      .offset(offset),
+    db.select({ total: sql<number>`count(*)::int` }).from(schema.users).where(where),
+  ]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
@@ -63,6 +85,36 @@ export default async function CustomersPage({
       </form>
 
       <h2>All customers</h2>
+      <form
+        action="/admin/customers"
+        method="GET"
+        style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}
+      >
+        <input
+          type="search"
+          name="q"
+          defaultValue={q}
+          placeholder="Search by email or name…"
+          style={{
+            flex: 1,
+            minWidth: 240,
+            padding: "10px 14px",
+            border: "1px solid var(--line)",
+            borderRadius: 10,
+            fontFamily: "var(--sans)",
+            fontSize: 14,
+            background: "rgba(255,255,255,0.6)",
+          }}
+        />
+        <button type="submit" className="btn btn-outline">
+          Search
+        </button>
+        {q && (
+          <Link href="/admin/customers" className="btn btn-ghost">
+            Clear
+          </Link>
+        )}
+      </form>
       {customers.length === 0 ? (
         <p style={{ color: "var(--muted)" }}>No customers yet.</p>
       ) : (
@@ -139,6 +191,42 @@ export default async function CustomersPage({
             })}
           </tbody>
         </table>
+      )}
+      {totalPages > 1 && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: 18,
+            color: "var(--muted)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Page {page} of {totalPages} · {total.toLocaleString()} total
+          </span>
+          <div style={{ display: "flex", gap: 6 }}>
+            {page > 1 && (
+              <Link
+                href={`/admin/customers?page=${page - 1}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+                className="btn btn-outline"
+                style={{ padding: "6px 12px", fontSize: 12 }}
+              >
+                ← Newer
+              </Link>
+            )}
+            {page < totalPages && (
+              <Link
+                href={`/admin/customers?page=${page + 1}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+                className="btn btn-outline"
+                style={{ padding: "6px 12px", fontSize: 12 }}
+              >
+                Older →
+              </Link>
+            )}
+          </div>
+        </div>
       )}
     </>
   );

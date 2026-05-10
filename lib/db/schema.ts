@@ -28,6 +28,11 @@ export const users = pgTable(
     inviteAcceptedAt: timestamp("invite_accepted_at", { withTimezone: true }),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    // 2FA (TOTP)
+    totpSecret: text("totp_secret"),
+    totpEnabled: boolean("totp_enabled").notNull().default(false),
+    totpEnabledAt: timestamp("totp_enabled_at", { withTimezone: true }),
+    totpRecoveryCodes: jsonb("totp_recovery_codes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -319,6 +324,33 @@ export const webhookEvents = pgTable(
 );
 
 /**
+ * audit_logs — append-only record of consequential admin actions.
+ * Useful both for compliance ("who changed plan X on date Y") and for
+ * debugging ("why did this customer get charged twice").
+ */
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorUserId: uuid("actor_user_id"),
+    actorEmail: text("actor_email"),
+    action: text("action").notNull(),
+    targetType: text("target_type"),
+    targetId: text("target_id"),
+    details: jsonb("details"),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("audit_logs_actor_idx").on(t.actorUserId, t.createdAt),
+    index("audit_logs_action_idx").on(t.action, t.createdAt),
+    index("audit_logs_target_idx").on(t.targetType, t.targetId),
+    index("audit_logs_created_idx").on(t.createdAt),
+  ],
+);
+
+/**
  * email_verifications — short-lived OTP codes used to verify a visitor's
  * email before they can complete public checkout. The code itself is stored
  * as a sha256 hash so a DB leak doesn't expose live codes; we also track
@@ -381,6 +413,8 @@ export type UsageCounter = typeof usageCounters.$inferSelect;
 export type NewUsageCounter = typeof usageCounters.$inferInsert;
 export type EmailVerification = typeof emailVerifications.$inferSelect;
 export type NewEmailVerification = typeof emailVerifications.$inferInsert;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type NewAuditLog = typeof auditLogs.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Contact = typeof contacts.$inferSelect;

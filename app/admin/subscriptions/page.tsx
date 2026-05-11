@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { db, schema } from "@/lib/db";
 import { desc, eq, sql } from "drizzle-orm";
 
@@ -100,11 +101,28 @@ export default async function AdminSubscriptionsPage() {
             {rows.map(({ sub, user, plan }) => (
               <tr key={sub.id}>
                 <td>
-                  <strong style={{ color: "var(--ink)" }}>{user?.name ?? user?.email?.split("@")[0]}</strong>
-                  <br />
-                  <span style={{ color: "var(--muted)", fontFamily: "var(--mono)", fontSize: 12 }}>
-                    {user?.email}
-                  </span>
+                  {user ? (
+                    <Link
+                      href={`/admin/customers/${user.id}`}
+                      style={{ color: "var(--ink)", textDecoration: "none" }}
+                    >
+                      <strong style={{ color: "var(--ink)" }}>
+                        {user.name ?? user.email.split("@")[0]}
+                      </strong>
+                      <br />
+                      <span
+                        style={{
+                          color: "var(--muted)",
+                          fontFamily: "var(--mono)",
+                          fontSize: 12,
+                        }}
+                      >
+                        {user.email}
+                      </span>
+                    </Link>
+                  ) : (
+                    <span style={{ color: "var(--muted)" }}>—</span>
+                  )}
                 </td>
                 <td>{plan?.name ?? "—"}</td>
                 <td style={{ color: "var(--muted)" }}>{sub.period}</td>

@@ -12,6 +12,7 @@ export default function SubscriptionPanel({
   currency,
   nextBillingDate,
   cancelAtPeriodEnd,
+  shortUrl,
 }: {
   subscriptionId: string;
   status: string;
@@ -21,14 +22,17 @@ export default function SubscriptionPanel({
   currency: string;
   nextBillingDate: string | null;
   cancelAtPeriodEnd: boolean;
+  shortUrl?: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   function cancel() {
     if (!confirm("Cancel at the end of the current billing period?")) return;
     setErr(null);
+    setInfo(null);
     startTransition(async () => {
       const r = await fetch("/api/billing/cancel", {
         method: "POST",
@@ -46,6 +50,7 @@ export default function SubscriptionPanel({
 
   function resume() {
     setErr(null);
+    setInfo(null);
     startTransition(async () => {
       const r = await fetch("/api/billing/resume", {
         method: "POST",
@@ -61,7 +66,37 @@ export default function SubscriptionPanel({
     });
   }
 
+  function refresh() {
+    setErr(null);
+    setInfo(null);
+    startTransition(async () => {
+      const r = await fetch("/api/billing/sync", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ subscriptionId }),
+      });
+      const body = (await r.json()) as {
+        ok?: boolean;
+        status?: string;
+        invoicesSynced?: number;
+        changed?: boolean;
+        error?: string;
+      };
+      if (!r.ok || !body.ok) {
+        setErr(body.error ?? "Sync failed.");
+        return;
+      }
+      setInfo(
+        body.changed
+          ? `Status updated to ${body.status}. ${body.invoicesSynced ?? 0} invoice(s) synced.`
+          : `Status: ${body.status}. ${body.invoicesSynced ?? 0} invoice(s) on file.`,
+      );
+      router.refresh();
+    });
+  }
+
   const live = ["authenticated", "active"].includes(status);
+  const pendingPayment = ["created", "pending"].includes(status);
   const closed = ["cancelled", "expired", "completed", "halted"].includes(status);
 
   return (
@@ -139,6 +174,46 @@ export default function SubscriptionPanel({
         </div>
       )}
 
+      {pendingPayment && (
+        <div
+          style={{
+            marginTop: 18,
+            paddingTop: 18,
+            borderTop: "1px solid var(--line)",
+            background: "rgba(242, 180, 58, 0.06)",
+            margin: "18px -32px 0",
+            padding: "16px 32px",
+            color: "var(--ink-2)",
+            fontSize: 14,
+            lineHeight: 1.6,
+          }}
+        >
+          <strong>Payment authorisation pending.</strong> Razorpay confirms in a few seconds.
+          {shortUrl && (
+            <>
+              {" "}If you closed the checkout window,{" "}
+              <a href={shortUrl} target="_blank" rel="noreferrer" style={{ color: "var(--ink)" }}>
+                complete payment here
+              </a>
+              .
+            </>
+          )}{" "}
+          Already paid? Click <em>Refresh status</em> below.
+        </div>
+      )}
+
+      {info && (
+        <p
+          style={{
+            color: "var(--c-cyan)",
+            fontSize: 13,
+            fontFamily: "var(--mono)",
+            marginTop: 16,
+          }}
+        >
+          {info}
+        </p>
+      )}
       {err && (
         <p
           style={{
@@ -152,8 +227,28 @@ export default function SubscriptionPanel({
         </p>
       )}
 
-      <div style={{ display: "flex", gap: 10, marginTop: 24, flexWrap: "wrap" }}>
-        {live && !cancelAtPeriodEnd && (
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          marginTop: 24,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
+        {/* Refresh — useful for everyone, especially pre-active states. */}
+        {!closed && (
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={refresh}
+            disabled={pending}
+            style={{ padding: "8px 14px", fontSize: 13 }}
+          >
+            {pending ? "Refreshing…" : "↻ Refresh status"}
+          </button>
+        )}
+        {(live || pendingPayment) && !cancelAtPeriodEnd && (
           <button
             type="button"
             className="btn btn-outline"
@@ -167,7 +262,7 @@ export default function SubscriptionPanel({
         {cancelAtPeriodEnd && (
           <>
             <span style={{ color: "var(--c-red)", fontSize: 13, fontFamily: "var(--mono)" }}>
-              Cancellation scheduled for end of period.
+              Cancellation scheduled.
             </span>
             <button
               type="button"
@@ -179,11 +274,11 @@ export default function SubscriptionPanel({
             </button>
           </>
         )}
-        {live && (
+        {(live || pendingPayment) && (
           <a
             href="/dashboard/change-plan"
             className="btn btn-outline"
-            style={{ marginLeft: cancelAtPeriodEnd ? 0 : "auto" }}
+            style={{ marginLeft: "auto" }}
           >
             Change plan
           </a>

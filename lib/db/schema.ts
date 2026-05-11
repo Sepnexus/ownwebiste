@@ -166,6 +166,9 @@ export const subscriptions = pgTable(
     cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
 
+    /** Razorpay-hosted Checkout fallback URL (in case the modal SDK fails). */
+    shortUrl: text("short_url"),
+
     metadata: jsonb("metadata"),
 
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

@@ -6,6 +6,8 @@ import {
   cancelSubscription as rzpCancelSubscription,
   updateSubscription as rzpUpdateSubscription,
   cancelScheduledChange as rzpCancelScheduledChange,
+  fetchSubscription as rzpFetchSubscription,
+  listInvoicesForSubscription as rzpListInvoices,
   type RzpPlanPeriod,
   type RzpSubscription,
 } from "./razorpay";
@@ -145,6 +147,7 @@ export async function startSubscription(args: {
       razorpaySubscriptionId: rzpSub.id,
       razorpayPlanId: rzpPlanId,
       status: rzpSub.status,
+      shortUrl: rzpSub.short_url,
     })
     .returning();
 
@@ -325,6 +328,106 @@ export async function changeUserPlan(args: {
     .where(eq(schema.subscriptions.id, sub.id))
     .returning();
   return updated;
+}
+
+/* ============== Sync from Razorpay (webhook-free fallback) ============== */
+
+/**
+ * Pull the current state from Razorpay for one subscription and reconcile our
+ * DB. Used when webhooks aren't reaching us (e.g. local dev without ngrok)
+ * or when the customer hits refresh. Idempotent — safe to call repeatedly.
+ *
+ * Also pulls related invoices and the welcome-email path for fresh self-serve
+ * customers (mirrors what the webhook would have done).
+ */
+export async function syncSubscriptionFromRazorpay(args: {
+  subscriptionId: string;
+}): Promise<{ status: string; invoicesSynced: number; changed: boolean }> {
+  const [sub] = await db
+    .select()
+    .from(schema.subscriptions)
+    .where(eq(schema.subscriptions.id, args.subscriptionId))
+    .limit(1);
+  if (!sub) throw new Error("Subscription not found.");
+  if (!sub.razorpaySubscriptionId) {
+    return { status: sub.status, invoicesSynced: 0, changed: false };
+  }
+
+  const rzpSub = await rzpFetchSubscription(sub.razorpaySubscriptionId);
+  const previousStatus = sub.status;
+
+  await applySubscriptionEvent({ event: "sync", rzpSub });
+
+  // Pull invoices for this subscription too — even if /charged didn't fire.
+  let invoicesSynced = 0;
+  try {
+    const items = await rzpListInvoices(sub.razorpaySubscriptionId);
+    for (const inv of items) {
+      await recordInvoiceFromCharge({
+        rzpSubscriptionId: sub.razorpaySubscriptionId,
+        rzpInvoiceId: inv.id,
+        rzpPaymentId: inv.payment_id ?? undefined,
+        rzpShortUrl: inv.short_url ?? null,
+        amountCents: inv.amount_paid || inv.amount,
+        currency: inv.currency,
+        paid: inv.status === "paid",
+        paidAt: inv.paid_at ? new Date(inv.paid_at * 1000) : null,
+        periodStart: inv.billing_start ? new Date(inv.billing_start * 1000) : null,
+        periodEnd: inv.billing_end ? new Date(inv.billing_end * 1000) : null,
+      });
+      invoicesSynced += 1;
+    }
+  } catch (e) {
+    console.error("[sync] fetching invoices failed:", e);
+  }
+
+  // If the subscription just became active and the user has no password yet
+  // (self-serve flow), trigger the welcome email + invite token.
+  const justActivated =
+    rzpSub.status === "active" || rzpSub.status === "authenticated";
+  if (justActivated && previousStatus !== rzpSub.status) {
+    try {
+      const { issueAuthToken } = await import("./auth");
+      const { sendWelcomePostPaymentEmail } = await import("./email-templates");
+      const [user] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, sub.userId))
+        .limit(1);
+      const [plan] = await db
+        .select()
+        .from(schema.pricingPlans)
+        .where(eq(schema.pricingPlans.id, sub.planId))
+        .limit(1);
+      if (user && plan && !user.passwordHash && !user.inviteAcceptedAt) {
+        const { plain } = await issueAuthToken({ userId: user.id, kind: "invite" });
+        const base = process.env.PUBLIC_BASE_URL ?? "http://localhost:3000";
+        const acceptUrl = `${base}/invite/${plain}`;
+        await db
+          .update(schema.users)
+          .set({ invitedAt: new Date(), updatedAt: new Date() })
+          .where(eq(schema.users.id, user.id));
+        await sendWelcomePostPaymentEmail({
+          to: user.email,
+          name: user.name,
+          acceptUrl,
+          planName: plan.name,
+          amountUsd:
+            sub.period === "yearly" ? plan.priceYearlyUsd : plan.priceMonthlyUsd,
+          period: sub.period,
+          currency: plan.currency,
+        });
+      }
+    } catch (e) {
+      console.error("[sync] welcome email path failed:", e);
+    }
+  }
+
+  return {
+    status: rzpSub.status,
+    invoicesSynced,
+    changed: previousStatus !== rzpSub.status,
+  };
 }
 
 /* ============== Webhook event application ============== */

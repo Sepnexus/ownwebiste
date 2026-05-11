@@ -25,7 +25,7 @@ export default async function DashboardPage({
   const { subscribed } = await searchParams;
 
   // Most recent non-terminal subscription, if any.
-  const [activeSub] = await db
+  let [activeSub] = await db
     .select({
       sub: schema.subscriptions,
       plan: schema.pricingPlans,
@@ -35,6 +35,36 @@ export default async function DashboardPage({
     .where(eq(schema.subscriptions.userId, user.id))
     .orderBy(desc(schema.subscriptions.createdAt))
     .limit(1);
+
+  // If the sub is in a pre-active state (created/pending) AND we haven't
+  // touched it recently, pull fresh state from Razorpay. This makes the
+  // dashboard self-healing when webhooks haven't reached us yet (especially
+  // on localhost where Razorpay can't post back).
+  if (
+    activeSub?.sub.razorpaySubscriptionId &&
+    ["created", "pending", "authenticated"].includes(activeSub.sub.status)
+  ) {
+    const ageSec = (Date.now() - new Date(activeSub.sub.updatedAt).getTime()) / 1000;
+    if (ageSec > 5) {
+      try {
+        const { syncSubscriptionFromRazorpay } = await import("@/lib/billing");
+        await syncSubscriptionFromRazorpay({ subscriptionId: activeSub.sub.id });
+        // Re-fetch after sync.
+        const refreshed = await db
+          .select({ sub: schema.subscriptions, plan: schema.pricingPlans })
+          .from(schema.subscriptions)
+          .leftJoin(
+            schema.pricingPlans,
+            eq(schema.pricingPlans.id, schema.subscriptions.planId),
+          )
+          .where(eq(schema.subscriptions.id, activeSub.sub.id))
+          .limit(1);
+        if (refreshed[0]) activeSub = refreshed[0];
+      } catch (e) {
+        console.error("[dashboard] auto-sync failed:", e);
+      }
+    }
+  }
 
   const hasLiveSubscription =
     activeSub &&
@@ -102,6 +132,7 @@ export default async function DashboardPage({
                 : activeSub.plan.priceYearlyUsd
             }
             currency={activeSub.plan.currency}
+            shortUrl={activeSub.sub.shortUrl}
             nextBillingDate={
               activeSub.sub.currentPeriodEnd
                 ? new Date(activeSub.sub.currentPeriodEnd).toLocaleDateString(undefined, {

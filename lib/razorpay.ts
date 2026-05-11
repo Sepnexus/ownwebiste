@@ -170,6 +170,33 @@ export async function fetchSubscription(id: string): Promise<RzpSubscription> {
   return rzp<RzpSubscription>("GET", `/subscriptions/${id}`);
 }
 
+export type RzpInvoiceListItem = {
+  id: string;
+  entity: "invoice";
+  subscription_id: string | null;
+  status: string;
+  amount: number;
+  amount_paid: number;
+  amount_due: number;
+  currency: string;
+  short_url: string | null;
+  paid_at: number | null;
+  date: number;
+  billing_start: number | null;
+  billing_end: number | null;
+  payment_id?: string | null;
+};
+
+export async function listInvoicesForSubscription(
+  subscriptionId: string,
+): Promise<RzpInvoiceListItem[]> {
+  const r = await rzp<{ entity: "collection"; count: number; items: RzpInvoiceListItem[] }>(
+    "GET",
+    `/invoices?subscription_id=${encodeURIComponent(subscriptionId)}&count=100`,
+  );
+  return r.items ?? [];
+}
+
 export async function cancelSubscription(
   id: string,
   { atCycleEnd }: { atCycleEnd: boolean },

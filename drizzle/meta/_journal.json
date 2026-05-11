@@ -50,6 +50,13 @@
       "when": 1778428630092,
       "tag": "0006_security_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778474077642,
+      "tag": "0007_short_url",
+      "breakpoints": true
     }
   ]
 }

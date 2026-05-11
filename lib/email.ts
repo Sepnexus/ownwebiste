@@ -55,11 +55,6 @@ export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; id?: str
 export function emailLayout(args: { title: string; preheader?: string; bodyHtml: string }) {
   const preheader = args.preheader ?? "";
   const base = process.env.PUBLIC_BASE_URL ?? "https://sepnexus.com";
-  const logoUrl =
-    process.env.EMAIL_LOGO_URL ??
-    (base.startsWith("http://localhost")
-      ? "https://sepnexus.com/assets/sepnexus-mark.png"
-      : `${base}/assets/sepnexus-mark.png`);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -72,21 +67,13 @@ export function emailLayout(args: { title: string; preheader?: string; bodyHtml:
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3ec;">
     <tr><td align="center" style="padding:32px 16px;">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid rgba(20,17,16,0.08);border-radius:18px;overflow:hidden;">
-        <tr><td style="padding:28px 32px 8px;">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td style="padding-right:12px;vertical-align:middle;">
-                <img src="${logoUrl}" alt="Sepnexus" width="36" height="36" style="display:block;border:0;outline:none;text-decoration:none;border-radius:6px;">
-              </td>
-              <td style="vertical-align:middle;">
-                <span style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:24px;letter-spacing:-0.01em;color:#14110f;line-height:1;">Sepnexus</span>
-                <br>
-                <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:#98928a;line-height:1.6;">
-                  Infrastructure of intelligent work
-                </span>
-              </td>
-            </tr>
-          </table>
+        <tr><td style="padding:32px 32px 12px;">
+          <div style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:32px;letter-spacing:-0.01em;color:#14110f;line-height:1;">
+            <span style="background:linear-gradient(90deg,#B14999,#EE7E2D,#F2B43A);-webkit-background-clip:text;background-clip:text;color:transparent;">Sepnexus</span>
+          </div>
+          <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:#98928a;margin-top:6px;">
+            Infrastructure of intelligent work
+          </div>
         </td></tr>
         <tr><td style="padding:8px 32px 12px;">
           <hr style="border:none;border-top:1px solid rgba(20,17,16,0.08);margin:0;">

@@ -212,8 +212,8 @@ export default async function PricingPage() {
     <>
       <Nav />
       <main className="page">
-        <div className="page-narrow">
-          <span className="page-eyebrow reveal">Pricing — USD only</span>
+        <div className="page-wide">
+          <span className="page-eyebrow reveal">Pricing — USD &amp; INR</span>
           <h1 className="page-title reveal">
             Honest plans
             <br />
@@ -221,8 +221,8 @@ export default async function PricingPage() {
           </h1>
           <p className="page-lede reveal">
             Built to undercut hosted n8n cloud and most managed-hosting offerings while including
-            actual support, deterministic backups and on-call. Editable from the admin panel —
-            switch billing periods to compare.
+            actual support, deterministic backups and on-call. Pick monthly or yearly — yearly
+            gives you roughly two months free.
           </p>
           <PricingClient plans={plans} />
         </div>

@@ -138,11 +138,18 @@ export default async function CustomersPage({
               return (
                 <tr key={c.id}>
                   <td>
-                    <strong style={{ color: "var(--ink)" }}>{c.name ?? c.email.split("@")[0]}</strong>
-                    <br />
-                    <span style={{ color: "var(--muted)", fontFamily: "var(--mono)", fontSize: 12 }}>
-                      {c.email}
-                    </span>
+                    <Link
+                      href={`/admin/customers/${c.id}`}
+                      style={{ color: "var(--ink)", textDecoration: "none" }}
+                    >
+                      <strong style={{ color: "var(--ink)" }}>
+                        {c.name ?? c.email.split("@")[0]}
+                      </strong>
+                      <br />
+                      <span style={{ color: "var(--muted)", fontFamily: "var(--mono)", fontSize: 12 }}>
+                        {c.email}
+                      </span>
+                    </Link>
                   </td>
                   <td>
                     {status === "active" && <span className="pill live">Active</span>}

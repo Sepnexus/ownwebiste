@@ -4,6 +4,7 @@ import Link from "next/link";
 import { db, schema } from "@/lib/db";
 import { desc, eq, and, isNull, asc } from "drizzle-orm";
 import { getRecentCountersForUser } from "@/lib/usage";
+import SyncSubButton from "./_components/SyncSubButton";
 
 export const metadata: Metadata = { title: "Admin · Customer" };
 export const dynamic = "force-dynamic";
@@ -159,7 +160,8 @@ export default async function CustomerDetailPage({
               <th style={{ width: 100 }}>Period</th>
               <th style={{ width: 110 }}>Status</th>
               <th style={{ width: 160 }}>Renews</th>
-              <th style={{ width: 220, fontFamily: "var(--mono)", fontSize: 10 }}>Razorpay ID</th>
+              <th style={{ width: 200, fontFamily: "var(--mono)", fontSize: 10 }}>Razorpay ID</th>
+              <th style={{ width: 130, textAlign: "right" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -175,6 +177,11 @@ export default async function CustomerDetailPage({
                 </td>
                 <td style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--muted)" }}>
                   {sub.razorpaySubscriptionId ?? "—"}
+                </td>
+                <td style={{ textAlign: "right" }}>
+                  {sub.razorpaySubscriptionId && (
+                    <SyncSubButton subscriptionId={sub.id} />
+                  )}
                 </td>
               </tr>
             ))}

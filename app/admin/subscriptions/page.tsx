@@ -95,6 +95,7 @@ export default async function AdminSubscriptionsPage() {
               <th style={{ width: 160, fontFamily: "var(--mono)", fontSize: 10 }}>
                 Razorpay ID
               </th>
+              <th style={{ width: 90, textAlign: "right" }}></th>
             </tr>
           </thead>
           <tbody>
@@ -136,6 +137,17 @@ export default async function AdminSubscriptionsPage() {
                 </td>
                 <td style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--muted)" }}>
                   {sub.razorpaySubscriptionId ?? "—"}
+                </td>
+                <td style={{ textAlign: "right" }}>
+                  {user && (
+                    <Link
+                      href={`/admin/customers/${user.id}`}
+                      className="btn btn-outline"
+                      style={{ padding: "6px 10px", fontSize: 12 }}
+                    >
+                      View →
+                    </Link>
+                  )}
                 </td>
               </tr>
             ))}

@@ -31,6 +31,7 @@ export default async function AdminOverviewPage() {
     executionsMonthRow,
     contactsRow,
     customersTotalRow,
+    pendingSubsRow,
   ] = await Promise.all([
     // MRR — sum of (priceMonthly for monthly subs) + (priceYearly/12 for yearly subs)
     db
@@ -111,6 +112,14 @@ export default async function AdminOverviewPage() {
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.users)
       .where(and(eq(schema.users.role, "customer"), isNull(schema.users.deletedAt))),
+
+    // Subs that exist in our DB but haven't reached active yet (webhook lag /
+    // payment not authorized). Flagged so admin knows to click ↻ Sync on the
+    // customer detail page if it sits here for too long.
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.subscriptions)
+      .where(sql`${schema.subscriptions.status} IN ('created', 'pending')`),
   ]);
 
   const mrrCents = Number(activeMrrRow[0]?.mrrCents ?? 0);
@@ -123,6 +132,7 @@ export default async function AdminOverviewPage() {
   const executionsMonth = Number(executionsMonthRow[0]?.execs ?? 0);
   const openContacts = Number(contactsRow[0]?.count ?? 0);
   const totalCustomers = Number(customersTotalRow[0]?.count ?? 0);
+  const pendingSubs = Number(pendingSubsRow[0]?.count ?? 0);
 
   // Top customers by usage this month
   const topUsageRows = await db
@@ -249,6 +259,14 @@ export default async function AdminOverviewPage() {
           sub="Open contact submissions"
           accent="var(--ink)"
         />
+        {pendingSubs > 0 && (
+          <Stat
+            label="Pending subs"
+            value={pendingSubs.toLocaleString()}
+            sub="Paid but webhook not landed — click into a customer & hit ↻ Sync"
+            accent="var(--c-orange)"
+          />
+        )}
       </div>
 
       <div

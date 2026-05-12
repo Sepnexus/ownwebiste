@@ -44,11 +44,14 @@ export default async function BillingPage() {
       </p>
 
       {/*
-        Razorpay does not expose a "swap card on this subscription" API for
-        recurring tokens. The official path is their hosted Customer Portal,
-        where the customer signs in with the email/phone tied to their cards
-        and manages saved instruments. If a renewal fails, Razorpay also
-        emails them a re-auth link automatically — this is the same destination.
+        Razorpay does NOT expose a "swap card on this subscription" API.
+        From their own docs: "If your customer wants to update their card
+        details, they will need to create a new subscription." There is no
+        self-serve customer portal (unlike Stripe). So we route card-update
+        requests through us — admin cancels + reissues via the merchant
+        dashboard, keeping the same plan and aligning the new period to the
+        old one. Building an automated "cancel & re-subscribe" flow is on
+        the roadmap if this becomes a frequent ask.
       */}
       <div
         style={{
@@ -83,30 +86,33 @@ export default async function BillingPage() {
               Payment method
             </div>
             <div style={{ fontSize: 15, color: "var(--ink)" }}>
-              Card &amp; UPI mandates live in your Razorpay account.
+              Need to switch your card?
             </div>
             <div
               style={{
                 fontSize: 13,
                 color: "var(--muted)",
                 marginTop: 4,
-                maxWidth: 540,
-                lineHeight: 1.5,
+                maxWidth: 560,
+                lineHeight: 1.55,
               }}
             >
-              Use the Razorpay Customer Portal to add a new card, switch the
-              card used for recurring charges, or remove a saved instrument.
-              Sign in with the email or phone tied to your subscription.
+              Razorpay binds the card to the original subscription mandate, so
+              swapping it requires a quick reissue on our side. Email us and
+              we&apos;ll cancel the old auth and send a fresh checkout link
+              for the new card — same plan, no missed days.
             </div>
           </div>
           <a
-            href="https://customers.razorpay.com/"
-            target="_blank"
-            rel="noreferrer"
+            href={`mailto:akshay@sepnexus.com?subject=${encodeURIComponent(
+              "Update payment method",
+            )}&body=${encodeURIComponent(
+              `Hi,\n\nI'd like to update the card on my Sepnexus subscription.\n\nAccount: ${user.email}\n\nThanks.`,
+            )}`}
             className="btn btn-solid"
             style={{ padding: "9px 14px", fontSize: 13, whiteSpace: "nowrap" }}
           >
-            Manage on Razorpay ↗
+            Email us to update →
           </a>
         </div>
       </div>

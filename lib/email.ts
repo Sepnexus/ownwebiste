@@ -36,6 +36,14 @@ export type SendArgs = {
   html: string;
   text?: string;
   replyTo?: string;
+  /** Optional BCC — used to copy the admin on customer receipts. */
+  bcc?: string | string[];
+  /** Optional attachments. Resend takes a Buffer + filename. */
+  attachments?: Array<{
+    filename: string;
+    content: Buffer;
+    contentType?: string;
+  }>;
 };
 
 /**
@@ -64,6 +72,12 @@ export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; id?: str
       html: args.html,
       text: args.text,
       replyTo,
+      bcc: args.bcc,
+      attachments: args.attachments?.map((a) => ({
+        filename: a.filename,
+        content: a.content,
+        contentType: a.contentType,
+      })),
     });
     if (result.error) return { ok: false, error: result.error.message };
     return { ok: true, id: result.data?.id };

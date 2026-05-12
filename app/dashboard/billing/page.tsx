@@ -39,8 +39,8 @@ export default async function BillingPage() {
     <DashboardShell user={{ email: user.email, name: user.name }}>
       <h1>Billing</h1>
       <p className="lede-row">
-        Invoice history and payment status. Issued and processed by Razorpay; we never see your
-        card details.
+        Invoice history and payment status. Payments are processed by Razorpay — we never see
+        your card details — and we issue Sepnexus-branded invoices for your records.
       </p>
 
       {invoices.length === 0 ? (
@@ -115,27 +115,13 @@ export default async function BillingPage() {
                   {fmtMoney(inv.amountCents, inv.currency)}
                 </td>
                 <td style={{ textAlign: "right" }}>
-                  {inv.razorpayShortUrl ? (
-                    <a
-                      href={inv.razorpayShortUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn btn-outline"
-                      style={{ padding: "5px 10px", fontSize: 11 }}
-                    >
-                      Download ↗
-                    </a>
-                  ) : (
-                    <span
-                      style={{
-                        fontFamily: "var(--mono)",
-                        fontSize: 11,
-                        color: "var(--muted)",
-                      }}
-                    >
-                      —
-                    </span>
-                  )}
+                  <Link
+                    href={`/dashboard/invoices/${inv.id}`}
+                    className="btn btn-outline"
+                    style={{ padding: "5px 10px", fontSize: 11 }}
+                  >
+                    View
+                  </Link>
                 </td>
               </tr>
             ))}
@@ -151,8 +137,9 @@ export default async function BillingPage() {
           lineHeight: 1.6,
         }}
       >
-        Invoices are issued by Razorpay. Click <strong>Download</strong> to open the official
-        invoice page where you can save it as a PDF or email it to your accounts team.
+        Click <strong>View</strong> to open the Sepnexus invoice page where you can download a
+        PDF or forward it to your accounts team. Need a different billing name or address on the
+        invoice? Reply to your receipt email and we&apos;ll reissue.
       </p>
     </DashboardShell>
   );

@@ -198,8 +198,27 @@ export const invoices = pgTable(
     razorpayInvoiceId: text("razorpay_invoice_id"),
     razorpayPaymentId: text("razorpay_payment_id"),
     razorpayOrderId: text("razorpay_order_id"),
-    /** Razorpay-hosted invoice page; doubles as the customer-facing PDF download. */
+    /** Razorpay-hosted invoice page; kept as a cross-reference, no longer customer-facing. */
     razorpayShortUrl: text("razorpay_short_url"),
+
+    /**
+     * Our own sequential invoice number, e.g. SEP-2026-0001. Allocated the first
+     * time this invoice transitions to "paid". Unique. Null until then.
+     */
+    invoiceNumber: text("invoice_number"),
+
+    /**
+     * Snapshot of the customer's identity AT invoice time. Lets us regenerate the
+     * PDF later without picking up retroactive edits to the user row.
+     * Shape: { name, email, address?: { line1, line2, city, state, pincode, country } }
+     */
+    billingSnapshot: jsonb("billing_snapshot"),
+
+    /**
+     * Snapshot of Sepnexus's own business profile + plan info AT invoice time.
+     * Shape: { businessName, address{...}, supportEmail, gstin?, planName, planPeriod }
+     */
+    businessSnapshot: jsonb("business_snapshot"),
 
     amountCents: integer("amount_cents").notNull(),
     currency: text("currency").notNull().default("USD"),
@@ -215,10 +234,21 @@ export const invoices = pgTable(
   },
   (t) => [
     uniqueIndex("invoices_razorpay_uniq").on(t.razorpayInvoiceId),
+    uniqueIndex("invoices_number_uniq").on(t.invoiceNumber),
     index("invoices_subscription_idx").on(t.subscriptionId, t.createdAt),
     index("invoices_user_idx").on(t.userId, t.createdAt),
   ],
 );
+
+/**
+ * invoice_counters — atomic sequential allocator for invoice numbers, per year.
+ * Postgres `ON CONFLICT DO UPDATE … RETURNING` makes the increment lock-free + atomic.
+ */
+export const invoiceCounters = pgTable("invoice_counters", {
+  year: integer("year").primaryKey(),
+  lastSeq: integer("last_seq").notNull().default(0),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 /**
  * usage_events — raw record of every metered event we receive

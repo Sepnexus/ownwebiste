@@ -57,6 +57,13 @@
       "when": 1778474077642,
       "tag": "0007_short_url",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1778594751679,
+      "tag": "0008_own_invoices",
+      "breakpoints": true
     }
   ]
 }

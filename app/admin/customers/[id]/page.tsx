@@ -242,7 +242,7 @@ export default async function CustomerDetailPage({
             <tr>
               <th style={{ width: 130 }}>Date</th>
               <th>Plan</th>
-              <th style={{ width: 180, fontFamily: "var(--mono)", fontSize: 10 }}>Razorpay ID</th>
+              <th style={{ width: 180 }}>Invoice #</th>
               <th style={{ width: 100 }}>Status</th>
               <th style={{ width: 130, textAlign: "right" }}>Amount</th>
               <th style={{ width: 110, textAlign: "right" }}>Invoice</th>
@@ -255,8 +255,23 @@ export default async function CustomerDetailPage({
                   {new Date(inv.createdAt).toLocaleDateString()}
                 </td>
                 <td>{plan?.name ?? "—"}</td>
-                <td style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--muted)" }}>
-                  {inv.razorpayInvoiceId ?? "—"}
+                <td>
+                  <Link
+                    href={`/admin/invoices/${inv.id}`}
+                    style={{
+                      color: "var(--ink)",
+                      textDecoration: "none",
+                      fontFamily: "var(--mono)",
+                      fontSize: 12,
+                    }}
+                  >
+                    {inv.invoiceNumber ?? <span style={{ color: "var(--muted)" }}>—</span>}
+                  </Link>
+                  {inv.razorpayInvoiceId && (
+                    <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--muted)", marginTop: 2 }}>
+                      rzp: {inv.razorpayInvoiceId}
+                    </div>
+                  )}
                 </td>
                 <td>
                   <span className={`pill ${inv.status === "paid" ? "live" : "draft"}`}>
@@ -268,19 +283,13 @@ export default async function CustomerDetailPage({
                   {(inv.amountCents / 100).toFixed(2)} {inv.currency}
                 </td>
                 <td style={{ textAlign: "right" }}>
-                  {inv.razorpayShortUrl ? (
-                    <a
-                      href={inv.razorpayShortUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn btn-outline"
-                      style={{ padding: "5px 10px", fontSize: 11 }}
-                    >
-                      Open ↗
-                    </a>
-                  ) : (
-                    <span style={{ color: "var(--muted)", fontFamily: "var(--mono)", fontSize: 11 }}>—</span>
-                  )}
+                  <Link
+                    href={`/admin/invoices/${inv.id}`}
+                    className="btn btn-outline"
+                    style={{ padding: "5px 10px", fontSize: 11 }}
+                  >
+                    Open
+                  </Link>
                 </td>
               </tr>
             ))}

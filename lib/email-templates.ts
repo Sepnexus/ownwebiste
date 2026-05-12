@@ -295,8 +295,8 @@ export async function sendPaymentReceivedEmail(args: {
   planName: string;
   amountCents: number;
   currency: string;
-  invoiceShortUrl: string | null;
-  invoiceId: string | null;
+  /** Internal invoice ID — drives the PDF render + the View invoice link. */
+  invoiceId: string;
   periodEnd: Date | null;
 }) {
   const greeting = args.name ? `Hi ${escapeHtml(args.name.split(" ")[0] || args.name)},` : "Hi,";
@@ -305,9 +305,20 @@ export async function sendPaymentReceivedEmail(args: {
   const periodEndStr = args.periodEnd
     ? args.periodEnd.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
     : null;
+
+  // Render the Sepnexus-branded PDF + load its number so we can show it in the email.
+  // We do this here (not in billing.ts) so the template owns its own attachments.
+  const { loadInvoicePdfData, renderInvoicePdf, invoiceFilename, invoicePublicUrl } =
+    await import("./invoice-pdf");
+  const data = await loadInvoicePdfData(args.invoiceId);
+  const pdfBuffer = data ? await renderInvoicePdf(data) : null;
+  const pdfFilename = data ? invoiceFilename(data) : null;
+  const invoiceUrl = invoicePublicUrl(args.invoiceId);
+  const invoiceNumber = data?.invoiceNumber ?? null;
+
   const body = `
     <p style="margin:0 0 14px;">${greeting}</p>
-    <p style="margin:0 0 18px;">Thanks — we received your payment for <strong>${escapeHtml(args.planName)}</strong>.</p>
+    <p style="margin:0 0 18px;">Thanks — we received your payment for <strong>${escapeHtml(args.planName)}</strong>. Your Sepnexus invoice is attached to this email and also available in your dashboard.</p>
 
     <table role="presentation" cellpadding="0" cellspacing="0" style="background:#faf7ef;border-radius:12px;padding:18px 20px;width:100%;font-size:14px;">
       <tr><td style="padding-bottom:10px;">
@@ -327,39 +338,50 @@ export async function sendPaymentReceivedEmail(args: {
           : ""
       }
       ${
-        args.invoiceId
+        invoiceNumber
           ? `<tr><td style="padding-top:10px;border-top:1px solid rgba(20,17,16,0.08);">
         <div style="font-family:ui-monospace,monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#98928a;">Invoice</div>
-        <div style="font-family:ui-monospace,monospace;font-size:12px;color:#2a2520;margin-top:2px;">${escapeHtml(args.invoiceId)}</div>
+        <div style="font-family:ui-monospace,monospace;font-size:13px;color:#2a2520;margin-top:2px;">${escapeHtml(invoiceNumber)}</div>
       </td></tr>`
           : ""
       }
     </table>
 
-    ${
-      args.invoiceShortUrl
-        ? `<p style="margin:24px 0 0;">
-        <a href="${args.invoiceShortUrl}" style="display:inline-block;background:#14110f;color:#f6f3ec;text-decoration:none;padding:12px 22px;border-radius:999px;font-family:-apple-system,sans-serif;font-size:14px;font-weight:500;">
-          View &amp; download invoice →
-        </a>
-      </p>`
-        : ""
-    }
+    <p style="margin:24px 0 0;">
+      <a href="${invoiceUrl}" style="display:inline-block;background:#14110f;color:#f6f3ec;text-decoration:none;padding:12px 22px;border-radius:999px;font-family:-apple-system,sans-serif;font-size:14px;font-weight:500;">
+        View invoice →
+      </a>
+    </p>
 
     <p style="margin:24px 0 0;font-size:13px;color:#6b6660;">
       Manage your subscription or download past invoices from
-      <a href="${process.env.PUBLIC_BASE_URL ?? "https://sepnexus.com"}/dashboard" style="color:#2a2520;border-bottom:1px solid rgba(20,17,16,0.2);text-decoration:none;">your dashboard</a>.
-      Razorpay also sends a separate receipt directly for tax records.
+      <a href="${process.env.PUBLIC_BASE_URL ?? "https://sepnexus.com"}/dashboard/billing" style="color:#2a2520;border-bottom:1px solid rgba(20,17,16,0.2);text-decoration:none;">your dashboard</a>.
+      Need a different billing address or company name on this invoice? Just reply to this email.
     </p>
   `;
+
+  // BCC akshay@sepnexus.com on every customer receipt — that's the audit trail.
+  const adminBcc = process.env.EMAIL_ADMIN ?? "akshay@sepnexus.com";
+
   return sendEmail({
     to: args.to,
-    subject: `Receipt: ${amount} ${args.currency} for ${args.planName}`,
+    bcc: adminBcc,
+    subject: `Receipt: ${amount} ${args.currency}${invoiceNumber ? ` · ${invoiceNumber}` : ""}`,
     html: emailLayout({
       title: "Payment received",
-      preheader: `${amount} for ${args.planName}. View invoice & manage subscription.`,
+      preheader: `${amount} for ${args.planName}. Invoice attached.`,
       bodyHtml: body,
     }),
+    attachments:
+      pdfBuffer && pdfFilename
+        ? [
+            {
+              filename: pdfFilename,
+              content: pdfBuffer,
+              contentType: "application/pdf",
+            },
+          ]
+        : undefined,
   });
 }
 

@@ -12,6 +12,8 @@ import {
   type RzpSubscription,
 } from "./razorpay";
 import type { PricingPlan, Subscription } from "./db/schema";
+import { allocateInvoiceNumber } from "./invoice-number";
+import { buildBusinessSnapshot, buildBillingSnapshot } from "./business";
 
 /** Statuses that mean "this customer is currently a paying customer". */
 const ACTIVE_STATUSES = ["authenticated", "active", "pending"] as const;
@@ -523,30 +525,67 @@ export async function recordInvoiceFromCharge(args: {
     }
   }
 
-  await db.insert(schema.invoices).values({
-    subscriptionId: sub.id,
-    userId: sub.userId,
-    razorpayInvoiceId: args.rzpInvoiceId ?? null,
-    razorpayPaymentId: args.rzpPaymentId ?? null,
-    razorpayShortUrl: args.rzpShortUrl ?? null,
-    amountCents: args.amountCents,
-    currency: args.currency,
-    status: args.paid ? "paid" : "pending",
-    paidAt: args.paid ? args.paidAt ?? new Date() : null,
-    periodStart: args.periodStart ?? null,
-    periodEnd: args.periodEnd ?? null,
-  });
+  // Snapshot the customer + business identity AT invoice time, so the PDF can be
+  // regenerated later without picking up retroactive edits to the user / plan / business profile.
+  const [user] = await db
+    .select({ name: schema.users.name, email: schema.users.email })
+    .from(schema.users)
+    .where(eq(schema.users.id, sub.userId))
+    .limit(1);
+  const [plan] = await db
+    .select({ name: schema.pricingPlans.name })
+    .from(schema.pricingPlans)
+    .where(eq(schema.pricingPlans.id, sub.planId))
+    .limit(1);
+
+  // Allocate our own sequential number only for paid invoices (one per real txn).
+  // Pending invoices stay unnumbered until they settle.
+  const invoiceNumber = args.paid ? await allocateInvoiceNumber() : null;
+
+  const businessSnapshot = user && plan
+    ? buildBusinessSnapshot({
+        planName: plan.name,
+        planPeriod: (sub.period as "monthly" | "yearly") ?? "monthly",
+      })
+    : null;
+  const billingSnapshot = user ? buildBillingSnapshot(user) : null;
+
+  const [inserted] = await db
+    .insert(schema.invoices)
+    .values({
+      subscriptionId: sub.id,
+      userId: sub.userId,
+      razorpayInvoiceId: args.rzpInvoiceId ?? null,
+      razorpayPaymentId: args.rzpPaymentId ?? null,
+      razorpayShortUrl: args.rzpShortUrl ?? null,
+      invoiceNumber,
+      businessSnapshot,
+      billingSnapshot,
+      amountCents: args.amountCents,
+      currency: args.currency,
+      status: args.paid ? "paid" : "pending",
+      paidAt: args.paid ? args.paidAt ?? new Date() : null,
+      periodStart: args.periodStart ?? null,
+      periodEnd: args.periodEnd ?? null,
+    })
+    .returning({ id: schema.invoices.id });
 
   // Brand-new paid invoice + caller didn't opt out → send the receipt.
-  if (args.paid && !args.skipReceiptEmail) {
-    void sendInvoiceReceipt(sub, args).catch((e) =>
+  if (args.paid && !args.skipReceiptEmail && inserted) {
+    void sendInvoiceReceipt(sub, inserted.id, args).catch((e) =>
       console.error("[billing] receipt email failed:", e),
     );
   }
 }
 
-async function sendInvoiceReceipt(
+/**
+ * Send the customer a Sepnexus-branded "Payment received" email with the
+ * Sepnexus-branded PDF attached. Internal invoice ID drives both the
+ * "View invoice" link and the PDF render.
+ */
+export async function sendInvoiceReceipt(
   sub: Subscription,
+  invoiceId: string,
   args: {
     rzpInvoiceId?: string;
     rzpShortUrl?: string | null;
@@ -574,8 +613,7 @@ async function sendInvoiceReceipt(
     planName: plan.name,
     amountCents: args.amountCents,
     currency: args.currency,
-    invoiceShortUrl: args.rzpShortUrl ?? null,
-    invoiceId: args.rzpInvoiceId ?? null,
+    invoiceId, // internal id → drives PDF + hosted view links
     periodEnd: args.periodEnd ?? null,
   });
 }

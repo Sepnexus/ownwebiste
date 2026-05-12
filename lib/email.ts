@@ -4,25 +4,48 @@ import path from "node:path";
 
 let _client: Resend | null = null;
 
+/** Stable Content-ID used to reference the inline logo from HTML. */
+export const LOGO_CID = "sepnexus-logo";
+
 /**
- * Sepnexus mark, base64-inlined at module load. Inlining avoids the broken
- * external-URL problem in dev (sepnexus.com not deployed yet) and works in
- * every modern client we care about (Gmail proxies it, Apple Mail / iOS /
- * Outlook 365 render data URIs directly). Outlook 2007/2010 strips data URIs
- * but those are <2% of B2B opens.
+ * Sepnexus mark as a CID (Content-ID) attachment.
+ *
+ * Why this over base64 data URIs: Gmail strips data: URIs from <img src> in
+ * HTML emails. CID attachments are the standard RFC-2392 way to inline an
+ * image, supported by Gmail (web + mobile), Apple Mail, Outlook, iOS,
+ * Thunderbird, and Yahoo. The HTML references `cid:sepnexus-logo` and we
+ * attach the file with that contentId.
+ *
+ * We auto-attach this on every sendEmail call unless the caller opts out.
  */
-let _logoDataUri: string | null = null;
-function logoDataUri(): string {
-  if (_logoDataUri !== null) return _logoDataUri;
-  try {
-    const buf = readFileSync(path.join(process.cwd(), "public/assets/sepnexus-mark.png"));
-    _logoDataUri = `data:image/png;base64,${buf.toString("base64")}`;
-  } catch (e) {
-    console.warn("[email] could not inline logo:", e);
-    _logoDataUri = "";
+let _logoBuf: Buffer | null = null;
+let _logoMissing = false;
+function logoAttachment(): {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+  contentId: string;
+} | null {
+  if (_logoMissing) return null;
+  if (!_logoBuf) {
+    try {
+      _logoBuf = readFileSync(
+        path.join(process.cwd(), "public/assets/sepnexus-mark.png"),
+      );
+    } catch (e) {
+      console.warn("[email] could not load logo for CID attach:", e);
+      _logoMissing = true;
+      return null;
+    }
   }
-  return _logoDataUri;
+  return {
+    filename: "sepnexus-logo.png",
+    content: _logoBuf,
+    contentType: "image/png",
+    contentId: LOGO_CID,
+  };
 }
+
 function client(): Resend | null {
   const key = process.env.RESEND_API_KEY;
   if (!key || key === "re_change_me") return null;
@@ -43,7 +66,11 @@ export type SendArgs = {
     filename: string;
     content: Buffer;
     contentType?: string;
+    /** Set this to inline-embed via <img src="cid:foo"> instead of as a file attachment. */
+    contentId?: string;
   }>;
+  /** Skip the auto-attached Sepnexus logo (rarely needed). */
+  skipLogo?: boolean;
 };
 
 /**
@@ -64,6 +91,14 @@ export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; id?: str
     return { ok: false, error: "Resend API key not configured" };
   }
 
+  // Auto-prepend the Sepnexus logo as an inline CID attachment, unless the
+  // caller opts out. emailLayout() references it via <img src="cid:sepnexus-logo">.
+  const logo = args.skipLogo ? null : logoAttachment();
+  const mergedAttachments = [
+    ...(logo ? [logo] : []),
+    ...(args.attachments ?? []),
+  ];
+
   try {
     const result = await c.emails.send({
       from,
@@ -73,11 +108,14 @@ export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; id?: str
       text: args.text,
       replyTo,
       bcc: args.bcc,
-      attachments: args.attachments?.map((a) => ({
-        filename: a.filename,
-        content: a.content,
-        contentType: a.contentType,
-      })),
+      attachments: mergedAttachments.length
+        ? mergedAttachments.map((a) => ({
+            filename: a.filename,
+            content: a.content,
+            contentType: a.contentType,
+            inlineContentId: a.contentId,
+          }))
+        : undefined,
     });
     if (result.error) return { ok: false, error: result.error.message };
     return { ok: true, id: result.data?.id };
@@ -107,7 +145,7 @@ export function emailLayout(args: { title: string; preheader?: string; bodyHtml:
           <table role="presentation" cellpadding="0" cellspacing="0" border="0">
             <tr>
               <td style="padding-right:14px;vertical-align:middle;">
-                <img src="${logoDataUri()}" alt="Sepnexus" width="44" height="44" style="display:block;border:0;outline:none;text-decoration:none;border-radius:8px;">
+                <img src="cid:${LOGO_CID}" alt="Sepnexus" width="44" height="44" style="display:block;border:0;outline:none;text-decoration:none;border-radius:8px;">
               </td>
               <td style="vertical-align:middle;">
                 <div style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:26px;letter-spacing:-0.01em;color:#14110f;line-height:1;">Sepnexus</div>

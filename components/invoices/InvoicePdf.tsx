@@ -69,25 +69,32 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 36,
+    marginBottom: 32,
   },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   logo: { width: 32, height: 32 },
   brandText: { fontFamily: "Times-Italic", fontSize: 22, color: COLORS.ink },
-  metaRight: { textAlign: "right" },
-  invoiceTitle: {
-    fontFamily: "Times-Roman",
-    fontSize: 24,
+  metaRight: { textAlign: "right", alignItems: "flex-end" },
+  invoiceLabel: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 9,
+    letterSpacing: 1.4,
+    color: COLORS.muted,
     marginBottom: 4,
-    color: COLORS.ink,
   },
-  invoiceNumber: { fontSize: 11, color: COLORS.muted },
-  // Two-column "from / to / details"
+  // The invoice number is the hero — large, monospace, dark.
+  invoiceNumberBig: {
+    fontFamily: "Courier-Bold",
+    fontSize: 18,
+    color: COLORS.ink,
+    letterSpacing: 0.4,
+  },
+  // Two-column "from / billed to"
   partyGrid: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 28,
-    gap: 24,
+    marginBottom: 18,
+    gap: 32,
   },
   partyCol: { flex: 1 },
   partyLabel: {
@@ -100,6 +107,27 @@ const styles = StyleSheet.create({
   partyName: { fontSize: 11, fontFamily: "Helvetica-Bold", marginBottom: 2 },
   partyLine: { fontSize: 10, color: COLORS.ink },
   partyMuted: { fontSize: 10, color: COLORS.muted },
+  // Single-row date strip below the parties
+  dateStrip: {
+    flexDirection: "row",
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.line,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.line,
+    marginBottom: 24,
+    fontSize: 10,
+  },
+  dateItem: { flexDirection: "row", marginRight: 18 },
+  dateLabel: {
+    fontSize: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    color: COLORS.muted,
+    marginRight: 6,
+    paddingTop: 1,
+  },
+  dateValue: { fontSize: 10, color: COLORS.ink },
   // Status pill (top right)
   statusPaid: {
     backgroundColor: COLORS.paidBg,
@@ -109,8 +137,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     fontSize: 9,
     fontFamily: "Helvetica-Bold",
-    alignSelf: "flex-end",
-    marginTop: 6,
+    marginTop: 8,
   },
   // Line items table
   table: { marginBottom: 24, borderTopWidth: 1, borderTopColor: COLORS.line },
@@ -173,21 +200,17 @@ const styles = StyleSheet.create({
   },
   paymentLine: { fontSize: 9, color: COLORS.ink, marginBottom: 2 },
   paymentMono: { fontFamily: "Courier", fontSize: 9 },
-  // Footer
+  // Footer — single line, minimal. No legal-name / website / GST repetition.
   footer: {
     position: "absolute",
     left: 48,
     right: 48,
     bottom: 36,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.line,
     paddingTop: 12,
-    fontSize: 8,
+    fontSize: 9,
     color: COLORS.muted,
     textAlign: "center",
   },
-  // "Bill of Supply" notice (non-GST)
-  notice: { fontSize: 8, color: COLORS.muted, marginTop: 4 },
 });
 
 // -- Helpers -----------------------------------------------------------------
@@ -218,7 +241,7 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
       subject={`${data.business.planName} — ${data.business.planPeriod}`}
     >
       <Page size="A4" style={styles.page}>
-        {/* Header */}
+        {/* Header — invoice number is the hero, "Invoice" demoted to a label. */}
         <View style={styles.header}>
           <View>
             <View style={styles.brandRow}>
@@ -227,18 +250,15 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
             </View>
           </View>
           <View style={styles.metaRight}>
-            <Text style={styles.invoiceTitle}>
-              {data.business.hasGst ? "Tax Invoice" : "Invoice"}
+            <Text style={styles.invoiceLabel}>
+              {data.business.hasGst ? "TAX INVOICE" : "INVOICE"}
             </Text>
-            <Text style={styles.invoiceNumber}>{data.invoiceNumber}</Text>
+            <Text style={styles.invoiceNumberBig}>{data.invoiceNumber}</Text>
             {isPaid ? <Text style={styles.statusPaid}>PAID</Text> : null}
-            {!data.business.hasGst ? (
-              <Text style={styles.notice}>Bill of Supply</Text>
-            ) : null}
           </View>
         </View>
 
-        {/* From / To / Details */}
+        {/* From / Billed to — two columns. Dates moved to a strip below. */}
         <View style={styles.partyGrid}>
           <View style={styles.partyCol}>
             <Text style={styles.partyLabel}>From</Text>
@@ -249,17 +269,29 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
             {data.business.address.line2 ? (
               <Text style={styles.partyLine}>{data.business.address.line2}</Text>
             ) : null}
-            <Text style={styles.partyLine}>
-              {[data.business.address.city, data.business.address.state]
+            {(() => {
+              const cityState = [
+                data.business.address.city,
+                data.business.address.state,
+              ]
                 .filter(Boolean)
-                .join(", ")}
-            </Text>
-            <Text style={styles.partyLine}>
-              {[data.business.address.pincode, data.business.address.country]
+                .join(", ");
+              return cityState ? (
+                <Text style={styles.partyLine}>{cityState}</Text>
+              ) : null;
+            })()}
+            {(() => {
+              const pinCountry = [
+                data.business.address.pincode,
+                data.business.address.country,
+              ]
                 .filter(Boolean)
-                .join(" ")}
-            </Text>
-            <Text style={[styles.partyMuted, { marginTop: 4 }]}>
+                .join(" ");
+              return pinCountry ? (
+                <Text style={styles.partyLine}>{pinCountry}</Text>
+              ) : null;
+            })()}
+            <Text style={[styles.partyMuted, { marginTop: 6 }]}>
               {data.business.supportEmail}
             </Text>
             {data.business.gstin ? (
@@ -285,25 +317,28 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
               </Text>
             ) : null}
           </View>
+        </View>
 
-          <View style={styles.partyCol}>
-            <Text style={styles.partyLabel}>Issued</Text>
-            <Text style={styles.partyLine}>{fmtDate(data.issuedAt)}</Text>
-            {data.paidAt ? (
-              <>
-                <Text style={[styles.partyLabel, { marginTop: 8 }]}>Paid on</Text>
-                <Text style={styles.partyLine}>{fmtDate(data.paidAt)}</Text>
-              </>
-            ) : null}
-            {data.periodStart && data.periodEnd ? (
-              <>
-                <Text style={[styles.partyLabel, { marginTop: 8 }]}>Period</Text>
-                <Text style={styles.partyLine}>
-                  {fmtDate(data.periodStart)} → {fmtDate(data.periodEnd)}
-                </Text>
-              </>
-            ) : null}
+        {/* Date strip — Issued · Paid · Period in one tidy row. */}
+        <View style={styles.dateStrip}>
+          <View style={styles.dateItem}>
+            <Text style={styles.dateLabel}>ISSUED</Text>
+            <Text style={styles.dateValue}>{fmtDate(data.issuedAt)}</Text>
           </View>
+          {data.paidAt ? (
+            <View style={styles.dateItem}>
+              <Text style={styles.dateLabel}>PAID</Text>
+              <Text style={styles.dateValue}>{fmtDate(data.paidAt)}</Text>
+            </View>
+          ) : null}
+          {data.periodStart && data.periodEnd ? (
+            <View style={styles.dateItem}>
+              <Text style={styles.dateLabel}>PERIOD</Text>
+              <Text style={styles.dateValue}>
+                {fmtDate(data.periodStart)} – {fmtDate(data.periodEnd)}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Line items */}
@@ -320,9 +355,6 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
                 {data.business.planPeriod === "yearly"
                   ? "Yearly subscription"
                   : "Monthly subscription"}
-                {data.periodStart && data.periodEnd
-                  ? ` · ${fmtDate(data.periodStart)} → ${fmtDate(data.periodEnd)}`
-                  : ""}
               </Text>
             </View>
             <Text style={styles.cellQty}>1</Text>
@@ -376,13 +408,9 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
           </View>
         ) : null}
 
-        {/* Footer */}
+        {/* Footer — minimal, single line. */}
         <Text style={styles.footer} fixed>
-          {data.business.legalName} · {data.business.website} ·{" "}
-          {data.business.supportEmail}
-          {!data.business.hasGst
-            ? "  ·  Bill of Supply (issuer not registered for GST)"
-            : ""}
+          Thank you for using Sepnexus. Questions? {data.business.supportEmail}
         </Text>
       </Page>
     </Document>

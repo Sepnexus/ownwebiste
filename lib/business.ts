@@ -12,12 +12,16 @@
  */
 export const BUSINESS = {
   legalName: "Sepnexus OPC Pvt Ltd",
-  /** Address shown on the invoice — keep concise; address goes on a single block. */
+  /**
+   * Address shown on the invoice. Keep concise — these get joined into one
+   * compact block. Leave line1 empty until you have a street address;
+   * "Chandigarh, India" is fine on its own.
+   */
   address: {
-    line1: "Chandigarh",
+    line1: "",
     line2: "",
     city: "Chandigarh",
-    state: "Chandigarh",
+    state: "", // Chandigarh is a Union Territory — no separate state line
     pincode: "",
     country: "India",
   },

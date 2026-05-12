@@ -77,26 +77,38 @@ export default async function CustomerInvoicePage({
         }}
       >
         <div>
-          <h1 style={{ margin: 0 }}>
-            {data.business.hasGst ? "Tax Invoice" : "Invoice"}
-          </h1>
-          <p
+          <div
             style={{
-              margin: "6px 0 0",
               fontFamily: "var(--mono)",
-              fontSize: 14,
+              fontSize: 11,
+              letterSpacing: "0.14em",
               color: "var(--muted)",
+              marginBottom: 6,
+            }}
+          >
+            {data.business.hasGst ? "TAX INVOICE" : "INVOICE"}
+          </div>
+          <div
+            style={{
+              fontFamily: "var(--mono)",
+              fontSize: 26,
+              fontWeight: 600,
+              color: "var(--ink)",
+              letterSpacing: "0.02em",
             }}
           >
             {data.invoiceNumber}
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          </div>
           {isPaid && (
-            <span className="pill live" style={{ fontSize: 12 }}>
+            <span
+              className="pill live"
+              style={{ fontSize: 11, marginTop: 8, display: "inline-block" }}
+            >
               PAID
             </span>
           )}
+        </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <a
             href={`/api/invoices/${id}/pdf?download=1`}
             className="btn btn-solid"
@@ -111,7 +123,7 @@ export default async function CustomerInvoicePage({
             className="btn btn-outline"
             style={{ padding: "9px 14px", fontSize: 13 }}
           >
-            View PDF ↗
+            View PDF
           </a>
         </div>
       </div>
@@ -125,15 +137,13 @@ export default async function CustomerInvoicePage({
           background: "rgba(255,255,255,0.6)",
         }}
       >
-        {/* From / Billed to / Issued */}
+        {/* From / Billed to — two columns. */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 24,
-            paddingBottom: 24,
-            borderBottom: "1px solid var(--line)",
-            marginBottom: 24,
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gap: 32,
+            marginBottom: 18,
           }}
         >
           <PartyBlock label="From">
@@ -166,28 +176,27 @@ export default async function CustomerInvoicePage({
               {data.billing.email}
             </div>
           </PartyBlock>
+        </div>
 
-          <PartyBlock label="Details">
-            <div style={{ fontSize: 13 }}>
-              <strong>Issued:</strong> {fmtDate(data.issuedAt)}
-            </div>
-            {data.paidAt && (
-              <div style={{ fontSize: 13, marginTop: 2 }}>
-                <strong>Paid on:</strong> {fmtDate(data.paidAt)}
-              </div>
-            )}
-            {data.periodStart && data.periodEnd && (
-              <div
-                style={{
-                  fontSize: 13,
-                  marginTop: 2,
-                  color: "var(--muted)",
-                }}
-              >
-                Period: {fmtDate(data.periodStart)} → {fmtDate(data.periodEnd)}
-              </div>
-            )}
-          </PartyBlock>
+        {/* Date strip — single row, dividing the parties from the line items. */}
+        <div
+          style={{
+            display: "flex",
+            gap: 24,
+            flexWrap: "wrap",
+            padding: "10px 0",
+            borderTop: "1px solid var(--line)",
+            borderBottom: "1px solid var(--line)",
+            marginBottom: 22,
+          }}
+        >
+          <DateItem label="Issued">{fmtDate(data.issuedAt)}</DateItem>
+          {data.paidAt && <DateItem label="Paid">{fmtDate(data.paidAt)}</DateItem>}
+          {data.periodStart && data.periodEnd && (
+            <DateItem label="Period">
+              {fmtDate(data.periodStart)} – {fmtDate(data.periodEnd)}
+            </DateItem>
+          )}
         </div>
 
         {/* Line items */}
@@ -212,12 +221,6 @@ export default async function CustomerInvoicePage({
                   {data.business.planPeriod === "yearly"
                     ? "Yearly subscription"
                     : "Monthly subscription"}
-                  {data.periodStart && data.periodEnd && (
-                    <>
-                      {" · "}
-                      {fmtDate(data.periodStart)} → {fmtDate(data.periodEnd)}
-                    </>
-                  )}
                 </div>
               </td>
               <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>1</td>
@@ -307,18 +310,6 @@ export default async function CustomerInvoicePage({
           </div>
         )}
 
-        {!data.business.hasGst && (
-          <p
-            style={{
-              marginTop: 16,
-              fontSize: 11,
-              color: "var(--muted)",
-              fontStyle: "italic",
-            }}
-          >
-            Bill of Supply — issuer is not registered for GST.
-          </p>
-        )}
       </div>
 
       <p
@@ -362,6 +353,30 @@ function PartyBlock({
         {label}
       </div>
       <div style={{ fontSize: 14, lineHeight: 1.5 }}>{children}</div>
+    </div>
+  );
+}
+
+function DateItem({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+      <span
+        style={{
+          fontSize: 10,
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          color: "var(--muted)",
+        }}
+      >
+        {label}
+      </span>
+      <span style={{ fontSize: 13, color: "var(--ink)" }}>{children}</span>
     </div>
   );
 }

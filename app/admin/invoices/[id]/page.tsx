@@ -74,27 +74,43 @@ export default async function AdminInvoiceDetail({
         }}
       >
         <div>
-          <h1 style={{ margin: 0 }}>
-            {data.business.hasGst ? "Tax Invoice" : "Invoice"}
-          </h1>
-          <p
+          <div
             style={{
-              margin: "4px 0 0",
               fontFamily: "var(--mono)",
-              fontSize: 14,
+              fontSize: 11,
+              letterSpacing: "0.14em",
               color: "var(--muted)",
+              marginBottom: 6,
+            }}
+          >
+            {data.business.hasGst ? "TAX INVOICE" : "INVOICE"}
+          </div>
+          <div
+            style={{
+              fontFamily: "var(--mono)",
+              fontSize: 24,
+              fontWeight: 600,
+              color: "var(--ink)",
+              letterSpacing: "0.02em",
             }}
           >
             {data.invoiceNumber}
-          </p>
-          {meta.user && (
-            <p style={{ marginTop: 6 }} className="admin-subtitle">
-              For{" "}
-              <Link href={`/admin/customers/${meta.user.id}`}>
-                {meta.user.name ?? meta.user.email.split("@")[0]} ({meta.user.email})
-              </Link>
-            </p>
-          )}
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
+            {isPaid && (
+              <span className="pill live" style={{ fontSize: 11 }}>
+                PAID
+              </span>
+            )}
+            {meta.user && (
+              <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                for{" "}
+                <Link href={`/admin/customers/${meta.user.id}`}>
+                  {meta.user.name ?? meta.user.email.split("@")[0]}
+                </Link>
+              </span>
+            )}
+          </div>
         </div>
         <div
           style={{
@@ -104,11 +120,6 @@ export default async function AdminInvoiceDetail({
             flexWrap: "wrap",
           }}
         >
-          {isPaid && (
-            <span className="pill live" style={{ fontSize: 12 }}>
-              PAID
-            </span>
-          )}
           <a
             href={`/api/invoices/${id}/pdf?download=1`}
             className="btn btn-solid"
@@ -123,7 +134,7 @@ export default async function AdminInvoiceDetail({
             className="btn btn-outline"
             style={{ padding: "8px 14px", fontSize: 13 }}
           >
-            View PDF ↗
+            View PDF
           </a>
           {isPaid && meta.user && <ResendReceiptButton invoiceId={id} />}
         </div>
@@ -141,11 +152,9 @@ export default async function AdminInvoiceDetail({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 24,
-            paddingBottom: 24,
-            borderBottom: "1px solid var(--line)",
-            marginBottom: 24,
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gap: 32,
+            marginBottom: 18,
           }}
         >
           <Block label="From">
@@ -177,21 +186,26 @@ export default async function AdminInvoiceDetail({
               {data.billing.email}
             </div>
           </Block>
-          <Block label="Details">
-            <div style={{ fontSize: 13 }}>
-              <strong>Issued:</strong> {fmtDate(data.issuedAt)}
-            </div>
-            {data.paidAt && (
-              <div style={{ fontSize: 13, marginTop: 2 }}>
-                <strong>Paid:</strong> {fmtDate(data.paidAt)}
-              </div>
-            )}
-            {data.periodStart && data.periodEnd && (
-              <div style={{ fontSize: 13, color: "var(--muted)" }}>
-                {fmtDate(data.periodStart)} → {fmtDate(data.periodEnd)}
-              </div>
-            )}
-          </Block>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 24,
+            flexWrap: "wrap",
+            padding: "10px 0",
+            borderTop: "1px solid var(--line)",
+            borderBottom: "1px solid var(--line)",
+            marginBottom: 22,
+          }}
+        >
+          <DateK label="Issued">{fmtDate(data.issuedAt)}</DateK>
+          {data.paidAt && <DateK label="Paid">{fmtDate(data.paidAt)}</DateK>}
+          {data.periodStart && data.periodEnd && (
+            <DateK label="Period">
+              {fmtDate(data.periodStart)} – {fmtDate(data.periodEnd)}
+            </DateK>
+          )}
         </div>
 
         <table className="admin-table" style={{ marginTop: 0, marginBottom: 0 }}>
@@ -312,6 +326,30 @@ function Block({
         {label}
       </div>
       <div style={{ fontSize: 14, lineHeight: 1.5 }}>{children}</div>
+    </div>
+  );
+}
+
+function DateK({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+      <span
+        style={{
+          fontSize: 10,
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          color: "var(--muted)",
+        }}
+      >
+        {label}
+      </span>
+      <span style={{ fontSize: 13, color: "var(--ink)" }}>{children}</span>
     </div>
   );
 }

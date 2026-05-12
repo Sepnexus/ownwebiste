@@ -10,6 +10,7 @@ const NAV: { label: string; href: string; section: "main" | "system" }[] = [
   { label: "Inbox", href: "/admin/inbox", section: "main" },
   { label: "Customers", href: "/admin/customers", section: "main" },
   { label: "Subscriptions", href: "/admin/subscriptions", section: "main" },
+  { label: "Invoices", href: "/admin/invoices", section: "main" },
   { label: "Usage", href: "/admin/usage", section: "main" },
   { label: "Pricing", href: "/admin/pricing", section: "main" },
   { label: "Portfolio", href: "/admin/portfolio", section: "main" },

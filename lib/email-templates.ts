@@ -284,6 +284,85 @@ export async function sendWelcomePostPaymentEmail(args: {
   });
 }
 
+/**
+ * Sent to the customer when a payment lands (subscription.charged or
+ * invoice.paid). Separate from Razorpay's own receipt — this one carries
+ * Sepnexus branding and a direct link to the invoice page.
+ */
+export async function sendPaymentReceivedEmail(args: {
+  to: string;
+  name: string | null;
+  planName: string;
+  amountCents: number;
+  currency: string;
+  invoiceShortUrl: string | null;
+  invoiceId: string | null;
+  periodEnd: Date | null;
+}) {
+  const greeting = args.name ? `Hi ${escapeHtml(args.name.split(" ")[0] || args.name)},` : "Hi,";
+  const sym = args.currency === "INR" ? "₹" : "$";
+  const amount = `${sym}${(args.amountCents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const periodEndStr = args.periodEnd
+    ? args.periodEnd.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
+    : null;
+  const body = `
+    <p style="margin:0 0 14px;">${greeting}</p>
+    <p style="margin:0 0 18px;">Thanks — we received your payment for <strong>${escapeHtml(args.planName)}</strong>.</p>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" style="background:#faf7ef;border-radius:12px;padding:18px 20px;width:100%;font-size:14px;">
+      <tr><td style="padding-bottom:10px;">
+        <div style="font-family:ui-monospace,monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#98928a;">Amount</div>
+        <div style="font-family:Georgia,serif;font-size:32px;color:#14110f;letter-spacing:-0.01em;margin-top:2px;">${amount} <span style="font-size:12px;color:#98928a;letter-spacing:0.06em;text-transform:uppercase;">${escapeHtml(args.currency)}</span></div>
+      </td></tr>
+      <tr><td style="padding-top:10px;border-top:1px solid rgba(20,17,16,0.08);">
+        <div style="font-family:ui-monospace,monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#98928a;">Plan</div>
+        <div style="color:#2a2520;font-size:14px;margin-top:2px;">${escapeHtml(args.planName)}</div>
+      </td></tr>
+      ${
+        periodEndStr
+          ? `<tr><td style="padding-top:10px;border-top:1px solid rgba(20,17,16,0.08);">
+        <div style="font-family:ui-monospace,monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#98928a;">Next renewal</div>
+        <div style="color:#2a2520;font-size:14px;margin-top:2px;">${escapeHtml(periodEndStr)}</div>
+      </td></tr>`
+          : ""
+      }
+      ${
+        args.invoiceId
+          ? `<tr><td style="padding-top:10px;border-top:1px solid rgba(20,17,16,0.08);">
+        <div style="font-family:ui-monospace,monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#98928a;">Invoice</div>
+        <div style="font-family:ui-monospace,monospace;font-size:12px;color:#2a2520;margin-top:2px;">${escapeHtml(args.invoiceId)}</div>
+      </td></tr>`
+          : ""
+      }
+    </table>
+
+    ${
+      args.invoiceShortUrl
+        ? `<p style="margin:24px 0 0;">
+        <a href="${args.invoiceShortUrl}" style="display:inline-block;background:#14110f;color:#f6f3ec;text-decoration:none;padding:12px 22px;border-radius:999px;font-family:-apple-system,sans-serif;font-size:14px;font-weight:500;">
+          View &amp; download invoice →
+        </a>
+      </p>`
+        : ""
+    }
+
+    <p style="margin:24px 0 0;font-size:13px;color:#6b6660;">
+      Manage your subscription or download past invoices from
+      <a href="${process.env.PUBLIC_BASE_URL ?? "https://sepnexus.com"}/dashboard" style="color:#2a2520;border-bottom:1px solid rgba(20,17,16,0.2);text-decoration:none;">your dashboard</a>.
+      Razorpay also sends a separate receipt directly for tax records.
+    </p>
+  `;
+  return sendEmail({
+    to: args.to,
+    subject: `Receipt: ${amount} ${args.currency} for ${args.planName}`,
+    html: emailLayout({
+      title: "Payment received",
+      preheader: `${amount} for ${args.planName}. View invoice & manage subscription.`,
+      bodyHtml: body,
+    }),
+  });
+}
+
 export async function sendInviteEmail(args: {
   to: string;
   name: string | null;

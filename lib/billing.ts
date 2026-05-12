@@ -374,6 +374,9 @@ export async function syncSubscriptionFromRazorpay(args: {
         paidAt: inv.paid_at ? new Date(inv.paid_at * 1000) : null,
         periodStart: inv.billing_start ? new Date(inv.billing_start * 1000) : null,
         periodEnd: inv.billing_end ? new Date(inv.billing_end * 1000) : null,
+        // Don't spam old receipts during a sync — only the live webhook path
+        // should trigger receipt emails for fresh invoices.
+        skipReceiptEmail: true,
       });
       invoicesSynced += 1;
     }
@@ -485,6 +488,8 @@ export async function recordInvoiceFromCharge(args: {
   paidAt?: Date | null;
   periodStart?: Date | null;
   periodEnd?: Date | null;
+  /** Set true to suppress the customer receipt email (e.g. for replays/sync). */
+  skipReceiptEmail?: boolean;
 }): Promise<void> {
   const [sub] = await db
     .select()
@@ -529,6 +534,48 @@ export async function recordInvoiceFromCharge(args: {
     status: args.paid ? "paid" : "pending",
     paidAt: args.paid ? args.paidAt ?? new Date() : null,
     periodStart: args.periodStart ?? null,
+    periodEnd: args.periodEnd ?? null,
+  });
+
+  // Brand-new paid invoice + caller didn't opt out → send the receipt.
+  if (args.paid && !args.skipReceiptEmail) {
+    void sendInvoiceReceipt(sub, args).catch((e) =>
+      console.error("[billing] receipt email failed:", e),
+    );
+  }
+}
+
+async function sendInvoiceReceipt(
+  sub: Subscription,
+  args: {
+    rzpInvoiceId?: string;
+    rzpShortUrl?: string | null;
+    amountCents: number;
+    currency: string;
+    periodEnd?: Date | null;
+  },
+) {
+  const [user] = await db
+    .select({ email: schema.users.email, name: schema.users.name })
+    .from(schema.users)
+    .where(eq(schema.users.id, sub.userId))
+    .limit(1);
+  const [plan] = await db
+    .select({ name: schema.pricingPlans.name })
+    .from(schema.pricingPlans)
+    .where(eq(schema.pricingPlans.id, sub.planId))
+    .limit(1);
+  if (!user || !plan) return;
+
+  const { sendPaymentReceivedEmail } = await import("./email-templates");
+  await sendPaymentReceivedEmail({
+    to: user.email,
+    name: user.name,
+    planName: plan.name,
+    amountCents: args.amountCents,
+    currency: args.currency,
+    invoiceShortUrl: args.rzpShortUrl ?? null,
+    invoiceId: args.rzpInvoiceId ?? null,
     periodEnd: args.periodEnd ?? null,
   });
 }

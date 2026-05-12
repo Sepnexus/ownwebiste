@@ -240,10 +240,12 @@ export default async function CustomerDetailPage({
         <table className="admin-table">
           <thead>
             <tr>
-              <th style={{ width: 160 }}>Date</th>
+              <th style={{ width: 130 }}>Date</th>
               <th>Plan</th>
-              <th style={{ width: 110 }}>Status</th>
+              <th style={{ width: 180, fontFamily: "var(--mono)", fontSize: 10 }}>Razorpay ID</th>
+              <th style={{ width: 100 }}>Status</th>
               <th style={{ width: 130, textAlign: "right" }}>Amount</th>
+              <th style={{ width: 110, textAlign: "right" }}>Invoice</th>
             </tr>
           </thead>
           <tbody>
@@ -253,13 +255,32 @@ export default async function CustomerDetailPage({
                   {new Date(inv.createdAt).toLocaleDateString()}
                 </td>
                 <td>{plan?.name ?? "—"}</td>
+                <td style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--muted)" }}>
+                  {inv.razorpayInvoiceId ?? "—"}
+                </td>
                 <td>
                   <span className={`pill ${inv.status === "paid" ? "live" : "draft"}`}>
                     {inv.status}
                   </span>
                 </td>
                 <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>
-                  ${(inv.amountCents / 100).toFixed(2)} {inv.currency}
+                  {inv.currency === "INR" ? "₹" : "$"}
+                  {(inv.amountCents / 100).toFixed(2)} {inv.currency}
+                </td>
+                <td style={{ textAlign: "right" }}>
+                  {inv.razorpayShortUrl ? (
+                    <a
+                      href={inv.razorpayShortUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-outline"
+                      style={{ padding: "5px 10px", fontSize: 11 }}
+                    >
+                      Open ↗
+                    </a>
+                  ) : (
+                    <span style={{ color: "var(--muted)", fontFamily: "var(--mono)", fontSize: 11 }}>—</span>
+                  )}
                 </td>
               </tr>
             ))}

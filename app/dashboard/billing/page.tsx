@@ -43,6 +43,74 @@ export default async function BillingPage() {
         your card details — and we issue Sepnexus-branded invoices for your records.
       </p>
 
+      {/*
+        Razorpay does not expose a "swap card on this subscription" API for
+        recurring tokens. The official path is their hosted Customer Portal,
+        where the customer signs in with the email/phone tied to their cards
+        and manages saved instruments. If a renewal fails, Razorpay also
+        emails them a re-auth link automatically — this is the same destination.
+      */}
+      <div
+        style={{
+          marginTop: 8,
+          marginBottom: 28,
+          padding: "20px 22px",
+          border: "1px solid var(--line)",
+          borderRadius: 14,
+          background: "rgba(255,255,255,0.6)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 16,
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontFamily: "var(--mono)",
+                fontSize: 10,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "var(--muted)",
+                marginBottom: 4,
+              }}
+            >
+              Payment method
+            </div>
+            <div style={{ fontSize: 15, color: "var(--ink)" }}>
+              Card &amp; UPI mandates live in your Razorpay account.
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: "var(--muted)",
+                marginTop: 4,
+                maxWidth: 540,
+                lineHeight: 1.5,
+              }}
+            >
+              Use the Razorpay Customer Portal to add a new card, switch the
+              card used for recurring charges, or remove a saved instrument.
+              Sign in with the email or phone tied to your subscription.
+            </div>
+          </div>
+          <a
+            href="https://customers.razorpay.com/"
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-solid"
+            style={{ padding: "9px 14px", fontSize: 13, whiteSpace: "nowrap" }}
+          >
+            Manage on Razorpay ↗
+          </a>
+        </div>
+      </div>
+
       {invoices.length === 0 ? (
         <div
           style={{

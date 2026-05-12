@@ -7,6 +7,34 @@ import { z } from "zod";
 import { db, schema } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { audit } from "@/lib/audit";
+import { ensureRazorpayPlanId } from "@/lib/billing";
+
+/**
+ * Push the plan's monthly + yearly prices to Razorpay so it has plan IDs ready
+ * for checkout. Idempotent — ensureRazorpayPlanId only calls Razorpay if the
+ * id is missing. Failures are swallowed (logged + returned) so a Razorpay outage
+ * doesn't roll back the DB write; the admin can retry via the "Sync to Razorpay"
+ * button on the plan page.
+ */
+async function syncPlanToRazorpay(
+  planId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const [plan] = await db
+    .select()
+    .from(schema.pricingPlans)
+    .where(eq(schema.pricingPlans.id, planId))
+    .limit(1);
+  if (!plan) return { ok: false, error: "Plan not found" };
+  try {
+    if (plan.priceMonthlyUsd > 0) await ensureRazorpayPlanId(plan, "monthly");
+    if (plan.priceYearlyUsd > 0) await ensureRazorpayPlanId(plan, "yearly");
+    return { ok: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Razorpay sync failed";
+    console.warn(`[pricing] auto-sync failed for ${planId}: ${msg}`);
+    return { ok: false, error: msg };
+  }
+}
 
 const PlanInput = z.object({
   slug: z
@@ -98,6 +126,15 @@ export async function createPlan(formData: FormData) {
     bail("/admin/pricing/new", `Failed to create plan: ${msg}`);
   }
 
+  // Push to Razorpay immediately so the plan is ready for checkout. Failure
+  // here doesn't roll back — the plan still exists, admin can retry via the
+  // "Sync to Razorpay" button. But we DO surface the error to the redirect.
+  let syncErr: string | null = null;
+  if (createdPlanId) {
+    const result = await syncPlanToRazorpay(createdPlanId);
+    if (!result.ok) syncErr = result.error;
+  }
+
   void audit({
     actor: { userId: admin.id, email: admin.email },
     action: "plan.create",
@@ -108,6 +145,8 @@ export async function createPlan(formData: FormData) {
       name: parsed.data.name,
       currency: parsed.data.currency ?? "USD",
       customForUserId: parsed.data.customForUserId ?? null,
+      razorpaySyncOk: !syncErr,
+      razorpaySyncError: syncErr,
     },
   });
 
@@ -115,9 +154,17 @@ export async function createPlan(formData: FormData) {
   revalidatePath("/pricing");
   if (parsed.data.customForUserId) {
     revalidatePath(`/admin/customers/${parsed.data.customForUserId}`);
-    redirect(`/admin/customers/${parsed.data.customForUserId}?ok=${encodeURIComponent("Custom plan created.")}`);
+    const flag = syncErr
+      ? `error=${encodeURIComponent(`Custom plan saved, but Razorpay sync failed: ${syncErr}. Use the Sync button on the plan page.`)}`
+      : `ok=${encodeURIComponent("Custom plan created and synced to Razorpay.")}`;
+    redirect(`/admin/customers/${parsed.data.customForUserId}?${flag}`);
   }
-  if (createdPlanId) redirect(`/admin/pricing/${createdPlanId}`);
+  if (createdPlanId) {
+    const q = syncErr
+      ? `?error=${encodeURIComponent(`Razorpay sync failed: ${syncErr}`)}`
+      : `?ok=${encodeURIComponent("Plan saved and synced to Razorpay.")}`;
+    redirect(`/admin/pricing/${createdPlanId}${q}`);
+  }
   redirect("/admin/pricing");
 }
 
@@ -163,9 +210,17 @@ export async function updatePlan(formData: FormData) {
     bail(`/admin/pricing/${id}`, `Failed to update: ${msg}`);
   }
 
+  // Push price/name changes to Razorpay — idempotent, only acts if a plan ID
+  // is missing (Razorpay doesn't allow editing existing plans, so this just
+  // catches the case where the admin filled in pricing for the first time).
+  const sync = await syncPlanToRazorpay(id);
+
   revalidatePath("/admin/pricing");
   revalidatePath("/pricing");
-  redirect("/admin/pricing");
+  const q = !sync.ok
+    ? `?error=${encodeURIComponent(`Plan saved, but Razorpay sync failed: ${sync.error}`)}`
+    : `?ok=${encodeURIComponent("Plan saved.")}`;
+  redirect(`/admin/pricing/${id}${q}`);
 }
 
 export async function deletePlan(formData: FormData) {

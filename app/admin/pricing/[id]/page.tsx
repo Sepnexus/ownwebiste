@@ -14,10 +14,10 @@ export default async function EditPlanPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, ok } = await searchParams;
 
   const [plan] = await db
     .select()
@@ -48,6 +48,11 @@ export default async function EditPlanPage({
       <p className="admin-subtitle">
         Last updated {new Date(plan.updatedAt).toLocaleString()}
       </p>
+      {ok && (
+        <div className="form-success" style={{ marginBottom: 16, maxWidth: 920 }}>
+          {ok}
+        </div>
+      )}
       <PlanForm
         plan={plan}
         action={updatePlan}

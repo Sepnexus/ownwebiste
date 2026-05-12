@@ -117,6 +117,71 @@ export default async function DashboardPage({
         </div>
       )}
 
+      {/*
+        Surface custom-issued plans prominently. The admin can build a one-off
+        plan for this specific customer (pricing_plans.customForUserId); without
+        this banner they'd only see it if they happened to visit /change-plan.
+      */}
+      {hasLiveSubscription &&
+        (() => {
+          const customOffers = plans.filter(
+            (p) =>
+              p.customForUserId === user.id &&
+              p.id !== activeSub?.plan?.id,
+          );
+          if (customOffers.length === 0) return null;
+          return (
+            <div
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(177,73,153,0.06), rgba(43,182,224,0.04))",
+                border: "1px solid var(--c-magenta)",
+                borderRadius: 14,
+                padding: "18px 22px",
+                marginBottom: 28,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 16,
+                flexWrap: "wrap",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontFamily: "var(--mono)",
+                    fontSize: 10,
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "var(--c-magenta)",
+                    marginBottom: 4,
+                  }}
+                >
+                  Custom plan{customOffers.length > 1 ? "s" : ""} for you
+                </div>
+                <div style={{ fontSize: 16, color: "var(--ink)" }}>
+                  We&apos;ve tailored{" "}
+                  {customOffers
+                    .map((p) => <strong key={p.id}>{p.name}</strong>)
+                    .reduce<React.ReactNode[]>(
+                      (acc, el, i) =>
+                        i === 0 ? [el] : [...acc, " and ", el],
+                      [],
+                    )}{" "}
+                  for your account.
+                </div>
+              </div>
+              <Link
+                href="/dashboard/change-plan"
+                className="btn btn-solid"
+                style={{ padding: "10px 16px", fontSize: 13 }}
+              >
+                Review &amp; switch →
+              </Link>
+            </div>
+          );
+        })()}
+
       {hasLiveSubscription && activeSub.plan ? (
         <>
           <UsagePanelWrapper userId={user.id} />

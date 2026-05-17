@@ -1,6 +1,12 @@
 node_modules
+.next
+.next/dev
 dist
 .DS_Store
 *.log
 .vite
 .claude/
+.env
+.env.local
+.env.*.local
+next-env.d.ts.bak

@@ -32,17 +32,32 @@ function logoBuffer(): Buffer | null {
 }
 
 // -- Types -------------------------------------------------------------------
+/** One billable row on an invoice. */
+export type InvoiceLineItem = {
+  description: string;
+  /** Optional small subtitle under the description. */
+  detail?: string | null;
+  quantity: number;
+  /** Unit price in the currency's smallest unit. */
+  unitAmountMinor: number;
+};
+
 export type InvoicePdfData = {
   invoiceNumber: string;
   issuedAt: Date;
   paidAt: Date | null;
-  status: "paid" | "pending" | "failed" | "refunded" | "partially_refunded";
+  /** "paid" gets the PAID badge; anything else renders plain. */
+  status: string;
   currency: string;
   amountCents: number;
+  /** Billable rows. Subscription invoices pass exactly one. */
+  lineItems: InvoiceLineItem[];
   periodStart: Date | null;
   periodEnd: Date | null;
   razorpayPaymentId: string | null;
   razorpayInvoiceId: string | null;
+  /** Optional free-text note shown below the totals. */
+  notes?: string | null;
   business: BusinessSnapshot;
   billing: BillingSnapshot;
 };
@@ -246,7 +261,7 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
     <Document
       title={`Invoice ${data.invoiceNumber}`}
       author={data.business.legalName}
-      subject={`${data.business.planName} — ${data.business.planPeriod}`}
+      subject={`Invoice ${data.invoiceNumber}`}
     >
       <Page size="A4" style={styles.page}>
         {/* Header — invoice number is the hero, "Invoice" demoted to a label. */}
@@ -356,20 +371,29 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
             <Text style={[styles.cellQty, styles.thLabel]}>Qty</Text>
             <Text style={[styles.cellAmt, styles.thLabel]}>Amount</Text>
           </View>
-          <View style={styles.tr}>
-            <View style={styles.cellDesc}>
-              <Text style={styles.itemTitle}>{data.business.planName}</Text>
-              <Text style={styles.itemPeriod}>
-                {data.business.planPeriod === "yearly"
-                  ? "Yearly subscription"
-                  : "Monthly subscription"}
-              </Text>
-            </View>
-            <Text style={styles.cellQty}>1</Text>
-            <Text style={styles.cellAmt}>
-              {money(data.amountCents, data.currency)}
-            </Text>
-          </View>
+          {data.lineItems.map((item, i) => {
+            const lineTotal = item.quantity * item.unitAmountMinor;
+            // Show the unit price as a subtitle when qty isn't 1.
+            const detail =
+              item.detail ??
+              (item.quantity !== 1
+                ? `${item.quantity} × ${money(item.unitAmountMinor, data.currency)}`
+                : null);
+            return (
+              <View style={styles.tr} key={i}>
+                <View style={styles.cellDesc}>
+                  <Text style={styles.itemTitle}>{item.description}</Text>
+                  {detail ? (
+                    <Text style={styles.itemPeriod}>{detail}</Text>
+                  ) : null}
+                </View>
+                <Text style={styles.cellQty}>{item.quantity}</Text>
+                <Text style={styles.cellAmt}>
+                  {money(lineTotal, data.currency)}
+                </Text>
+              </View>
+            );
+          })}
         </View>
 
         {/* Totals */}
@@ -400,8 +424,9 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
           <View style={styles.paymentBlock}>
             <Text style={styles.paymentLabel}>Payment details</Text>
             <Text style={styles.paymentLine}>
-              Settled via Razorpay
-              {data.paidAt ? ` on ${fmtDate(data.paidAt)}` : ""}.
+              {data.razorpayPaymentId
+                ? `Settled via Razorpay${data.paidAt ? ` on ${fmtDate(data.paidAt)}` : ""}.`
+                : `Marked paid${data.paidAt ? ` on ${fmtDate(data.paidAt)}` : ""}.`}
             </Text>
             {data.razorpayPaymentId ? (
               <Text style={[styles.paymentLine, styles.paymentMono]}>
@@ -413,6 +438,14 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
                 Reference: {data.razorpayInvoiceId}
               </Text>
             ) : null}
+          </View>
+        ) : null}
+
+        {/* Notes */}
+        {data.notes ? (
+          <View style={{ marginTop: 20 }}>
+            <Text style={styles.paymentLabel}>Notes</Text>
+            <Text style={{ fontSize: 9, color: COLORS.ink }}>{data.notes}</Text>
           </View>
         ) : null}
 

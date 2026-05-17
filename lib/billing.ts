@@ -14,6 +14,7 @@ import {
 import type { PricingPlan, Subscription } from "./db/schema";
 import { allocateInvoiceNumber } from "./invoice-number";
 import { buildBusinessSnapshot, buildBillingSnapshot } from "./business";
+import { toMinorUnits } from "./currencies";
 
 /** Statuses that mean "this customer is currently a paying customer". */
 const ACTIVE_STATUSES = ["authenticated", "active", "pending"] as const;
@@ -41,16 +42,19 @@ export async function ensureRazorpayPlanId(
     period === "monthly" ? plan.razorpayPlanIdMonthly : plan.razorpayPlanIdYearly;
   if (existing && existing.length > 0) return existing;
 
-  const usd = period === "monthly" ? plan.priceMonthlyUsd : plan.priceYearlyUsd;
-  if (usd <= 0) throw new Error(`Plan ${plan.slug} has no ${period} price set.`);
+  const price = period === "monthly" ? plan.priceMonthlyUsd : plan.priceYearlyUsd;
+  if (price <= 0) throw new Error(`Plan ${plan.slug} has no ${period} price set.`);
 
+  const currency = plan.currency || "USD";
   const rzpPeriod: RzpPlanPeriod = period === "monthly" ? "monthly" : "yearly";
   const created = await rzpCreatePlan({
     period: rzpPeriod,
     interval: 1,
     name: `${plan.name} (${period})`,
-    amountCents: usd * 100,
-    currency: "USD",
+    // Convert the major-unit price into Razorpay's smallest unit, respecting
+    // the currency's decimal count (USD→cents, JPY→whole yen, KWD→millimes).
+    amountCents: toMinorUnits(price, currency),
+    currency,
     description: plan.tagline ?? plan.name,
     notes: { sepnexus_plan_slug: plan.slug, sepnexus_period: period },
   });

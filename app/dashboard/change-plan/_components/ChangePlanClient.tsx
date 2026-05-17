@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PricingPlan } from "@/lib/db/schema";
+import { currencySymbol } from "@/lib/format";
 
 export default function ChangePlanClient({
   subscriptionId,
@@ -95,7 +96,7 @@ export default function ChangePlanClient({
       <div className="pricing-grid">
         {filtered.map((p) => {
           const usd = period === "monthly" ? p.priceMonthlyUsd : p.priceYearlyUsd;
-          const sym = p.currency === "INR" ? "₹" : "$";
+          const sym = currencySymbol(p.currency);
           const synced =
             period === "monthly" ? !!p.razorpayPlanIdMonthly : !!p.razorpayPlanIdYearly;
           const features = Array.isArray(p.features) ? (p.features as string[]) : [];

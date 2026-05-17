@@ -5,16 +5,14 @@ import { currentUser } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { eq, desc } from "drizzle-orm";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import { formatMoneyCents } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Billing" };
 export const dynamic = "force-dynamic";
 
+/** e.g. (3500, "USD") → "$35.00 USD" — symbol + trailing ISO code. */
 function fmtMoney(cents: number, currency: string) {
-  const amount = (cents / 100).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  return `${currency === "USD" ? "$" : ""}${amount} ${currency}`;
+  return `${formatMoneyCents(cents, currency)} ${currency}`;
 }
 
 export default async function BillingPage() {

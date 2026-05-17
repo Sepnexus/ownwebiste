@@ -2,19 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db, schema } from "@/lib/db";
 import { desc, eq, sql, gte, and } from "drizzle-orm";
+import { formatMoneyCents as fmtMoney } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Admin · Invoices" };
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
-
-function fmtMoney(cents: number, currency: string): string {
-  const sym = currency === "INR" ? "₹" : "$";
-  return `${sym}${(cents / 100).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
 
 export default async function AdminInvoicesPage({
   searchParams,

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { db, schema } from "@/lib/db";
 import { desc, eq, and, isNull, asc } from "drizzle-orm";
 import { getRecentCountersForUser } from "@/lib/usage";
+import { formatMoneyCents } from "@/lib/format";
 import SyncSubButton from "./_components/SyncSubButton";
 
 export const metadata: Metadata = { title: "Admin · Customer" };
@@ -279,8 +280,7 @@ export default async function CustomerDetailPage({
                   </span>
                 </td>
                 <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>
-                  {inv.currency === "INR" ? "₹" : "$"}
-                  {(inv.amountCents / 100).toFixed(2)} {inv.currency}
+                  {formatMoneyCents(inv.amountCents, inv.currency)} {inv.currency}
                 </td>
                 <td style={{ textAlign: "right" }}>
                   <Link

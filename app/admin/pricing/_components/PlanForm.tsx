@@ -1,4 +1,5 @@
 import type { PricingPlan } from "@/lib/db/schema";
+import { currencyOptions } from "@/lib/currencies";
 
 type Props = {
   plan?: PricingPlan;
@@ -91,12 +92,29 @@ export default function PlanForm({ plan, action, error, customForUserId, customF
       <label>
         Currency
         <select name="currency" defaultValue={plan?.currency ?? "USD"}>
-          <option value="USD">USD — US Dollars ($)</option>
-          <option value="INR">INR — Indian Rupees (₹)</option>
+          <optgroup label="Common">
+            {currencyOptions()
+              .filter((c) => c.pinned)
+              .map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+          </optgroup>
+          <optgroup label="All Razorpay currencies">
+            {currencyOptions()
+              .filter((c) => !c.pinned)
+              .map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+          </optgroup>
         </select>
         <span className="help">
-          Pick USD for international customers, INR for Indian. The price fields below are in
-          this currency&apos;s major unit ($ or ₹).
+          Any currency Razorpay supports. The price fields below are in this
+          currency&apos;s major unit (e.g. dollars, euros, yen — not cents).
+          Razorpay settles everything to your account in INR.
         </span>
       </label>
 
@@ -138,7 +156,7 @@ export default function PlanForm({ plan, action, error, customForUserId, customF
           />
         </label>
         <label>
-          Overage per 1,000 (USD)
+          Overage per 1,000 (plan currency)
           <input
             type="number"
             name="overageUsdPer1k"

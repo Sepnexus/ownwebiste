@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Script from "next/script";
+import { currencySymbol as symbolFor } from "@/lib/format";
 
 declare global {
   interface Window {
@@ -25,11 +26,6 @@ type RazorpayCheckoutOptions = {
 };
 
 type Stage = "details" | "code" | "verified";
-
-function symbolFor(currency: string): string {
-  if (currency === "INR") return "₹";
-  return "$";
-}
 
 export default function SubscribeForm({
   planId,

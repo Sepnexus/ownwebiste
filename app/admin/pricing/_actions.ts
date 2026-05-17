@@ -8,6 +8,7 @@ import { db, schema } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { ensureRazorpayPlanId } from "@/lib/billing";
+import { isSupportedCurrency } from "@/lib/currencies";
 
 /**
  * Push the plan's monthly + yearly prices to Razorpay so it has plan IDs ready
@@ -57,7 +58,13 @@ const PlanInput = z.object({
   razorpayPlanIdMonthly: z.string().trim().max(120).optional().nullable(),
   razorpayPlanIdYearly: z.string().trim().max(120).optional().nullable(),
   customForUserId: z.string().uuid().optional().nullable(),
-  currency: z.enum(["USD", "INR"]).optional(),
+  // Any ISO currency Razorpay supports — validated against lib/currencies.ts.
+  currency: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .refine(isSupportedCurrency, "Unsupported currency")
+    .optional(),
 });
 
 function normalize(formData: FormData) {

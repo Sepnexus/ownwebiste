@@ -6,6 +6,7 @@ import { eq, and, isNull } from "drizzle-orm";
 import Nav from "@/components/sections/Nav";
 import Footer from "@/components/sections/Footer";
 import SubscribeForm from "./_components/SubscribeForm";
+import { currencySymbol } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Subscribe" };
 export const dynamic = "force-dynamic";
@@ -33,7 +34,7 @@ export default async function SubscribePage({
   if (!plan) notFound();
 
   const usd = period === "monthly" ? plan.priceMonthlyUsd : plan.priceYearlyUsd;
-  const sym = plan.currency === "INR" ? "₹" : "$";
+  const sym = currencySymbol(plan.currency);
   const synced =
     period === "monthly" ? plan.razorpayPlanIdMonthly : plan.razorpayPlanIdYearly;
   const features = Array.isArray(plan.features) ? (plan.features as string[]) : [];

@@ -5,18 +5,11 @@ import { loadInvoicePdfData } from "@/lib/invoice-pdf";
 import { db, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { formatAddress } from "@/lib/business";
+import { formatMoneyCents as money } from "@/lib/format";
 import ResendReceiptButton from "./_components/ResendReceiptButton";
 
 export const metadata: Metadata = { title: "Admin · Invoice" };
 export const dynamic = "force-dynamic";
-
-function money(cents: number, currency: string): string {
-  const sym = currency === "INR" ? "₹" : "$";
-  return `${sym}${(cents / 100).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
 function fmtDate(d: Date): string {
   return d.toLocaleDateString("en-GB", {
     day: "2-digit",

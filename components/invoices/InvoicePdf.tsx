@@ -10,6 +10,7 @@ import {
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { BillingSnapshot, BusinessSnapshot } from "@/lib/business";
+import { currencyDecimals } from "@/lib/currencies";
 
 // -- Fonts -------------------------------------------------------------------
 // @react-pdf bundles a few faces by default (Helvetica). We stick with that to
@@ -214,12 +215,19 @@ const styles = StyleSheet.create({
 });
 
 // -- Helpers -----------------------------------------------------------------
-function money(cents: number, currency: string): string {
-  const sym = currency === "INR" ? "Rs." : "$";
-  return `${sym}${(cents / 100).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+// PDF fonts can't render every currency glyph (Helvetica has no €, ¥, ₹, …),
+// so we deliberately stay ASCII-safe: $ and Rs. get symbols, everything else
+// is shown with the ISO code suffix. Decimal count respects the currency.
+function money(minor: number, currency: string): string {
+  const decimals = currencyDecimals(currency);
+  const major = minor / 10 ** decimals;
+  const amount = major.toLocaleString("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+  if (currency === "USD") return `$${amount}`;
+  if (currency === "INR") return `Rs.${amount}`;
+  return `${amount} ${currency}`;
 }
 function fmtDate(d: Date): string {
   return d.toLocaleDateString("en-GB", {

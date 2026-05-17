@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Script from "next/script";
 import type { PricingPlan } from "@/lib/db/schema";
+import { currencySymbol } from "@/lib/format";
 
 declare global {
   interface Window {
@@ -61,7 +62,7 @@ export default function PlansGrid({
     const features = Array.isArray(p.features) ? (p.features as string[]) : [];
     const synced =
       period === "monthly" ? !!p.razorpayPlanIdMonthly : !!p.razorpayPlanIdYearly;
-    const sym = p.currency === "INR" ? "₹" : "$";
+    const sym = currencySymbol(p.currency);
     return (
       <article key={p.id} className={`pricing-card ${p.highlight ? "highlight" : ""}`}>
         <div className="name">{p.name}</div>

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { currencySymbol } from "@/lib/format";
 
 export default function SubscriptionPanel({
   subscriptionId,
@@ -144,7 +145,7 @@ export default function SubscriptionPanel({
             {planName}
           </div>
           <div style={{ color: "var(--muted)", fontSize: 14, marginTop: 4 }}>
-            {currency === "INR" ? "₹" : "$"}{amountUsd.toLocaleString()} / {period} · {currency}
+            {currencySymbol(currency)}{amountUsd.toLocaleString()} / {period} · {currency}
           </div>
         </div>
         <span

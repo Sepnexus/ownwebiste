@@ -91,7 +91,7 @@ export async function createPlan(args: {
   interval?: number;
   name: string;
   amountCents: number;
-  currency?: "USD" | "INR";
+  currency?: string;
   description?: string;
   notes?: Record<string, string>;
 }): Promise<RzpPlan> {
@@ -262,7 +262,7 @@ export async function createSubscriptionAddon(args: {
   subscriptionId: string;
   name: string;
   amountCents: number;
-  currency?: "USD" | "INR";
+  currency?: string;
   description?: string;
   quantity?: number;
 }): Promise<RzpAddon> {

@@ -55,8 +55,6 @@ const PlanInput = z.object({
   highlight: z.coerce.boolean().optional(),
   visible: z.coerce.boolean().optional(),
   sortOrder: z.coerce.number().int().default(0),
-  razorpayPlanIdMonthly: z.string().trim().max(120).optional().nullable(),
-  razorpayPlanIdYearly: z.string().trim().max(120).optional().nullable(),
   customForUserId: z.string().uuid().optional().nullable(),
   // Any ISO currency Razorpay supports — validated against lib/currencies.ts.
   currency: z
@@ -75,9 +73,6 @@ function normalize(formData: FormData) {
   obj.tagline = (raw.tagline as string)?.trim() || null;
   obj.executionsIncluded = raw.executionsIncluded === "" ? null : raw.executionsIncluded;
   obj.overageUsdPer1k = raw.overageUsdPer1k === "" ? null : raw.overageUsdPer1k;
-  obj.razorpayPlanIdMonthly =
-    (raw.razorpayPlanIdMonthly as string)?.trim() || null;
-  obj.razorpayPlanIdYearly = (raw.razorpayPlanIdYearly as string)?.trim() || null;
   const cfu = (raw.customForUserId as string)?.trim();
   obj.customForUserId = cfu && cfu.length > 0 ? cfu : null;
   return obj;
@@ -118,8 +113,7 @@ export async function createPlan(formData: FormData) {
         highlight: parsed.data.highlight ?? false,
         visible: parsed.data.visible ?? true,
         sortOrder: parsed.data.sortOrder,
-        razorpayPlanIdMonthly: parsed.data.razorpayPlanIdMonthly ?? null,
-        razorpayPlanIdYearly: parsed.data.razorpayPlanIdYearly ?? null,
+        // razorpayPlanId* are populated by the auto-sync below, never by hand.
         customForUserId: parsed.data.customForUserId ?? null,
         currency: parsed.data.currency ?? "USD",
       })
@@ -185,6 +179,27 @@ export async function updatePlan(formData: FormData) {
     bail(`/admin/pricing/${id}`, parsed.error.issues[0]?.message ?? "Invalid input");
 
   const features = featuresFromText(parsed.data.features);
+  const newCurrency = parsed.data.currency ?? "USD";
+
+  // Razorpay can't edit a live plan's price/currency. So if either changed,
+  // clear the matching Razorpay plan ID — syncPlanToRazorpay then re-creates
+  // it at the new price. Razorpay plan IDs are never set from the form.
+  const [before] = await db
+    .select({
+      priceMonthlyUsd: schema.pricingPlans.priceMonthlyUsd,
+      priceYearlyUsd: schema.pricingPlans.priceYearlyUsd,
+      currency: schema.pricingPlans.currency,
+    })
+    .from(schema.pricingPlans)
+    .where(eq(schema.pricingPlans.id, id))
+    .limit(1);
+  if (!before) bail(`/admin/pricing/${id}`, "Plan not found.");
+
+  const currencyChanged = before.currency !== newCurrency;
+  const monthlyChanged =
+    currencyChanged || before.priceMonthlyUsd !== parsed.data.priceMonthlyUsd;
+  const yearlyChanged =
+    currencyChanged || before.priceYearlyUsd !== parsed.data.priceYearlyUsd;
 
   try {
     await db
@@ -202,10 +217,12 @@ export async function updatePlan(formData: FormData) {
         highlight: parsed.data.highlight ?? false,
         visible: parsed.data.visible ?? true,
         sortOrder: parsed.data.sortOrder,
-        razorpayPlanIdMonthly: parsed.data.razorpayPlanIdMonthly ?? null,
-        razorpayPlanIdYearly: parsed.data.razorpayPlanIdYearly ?? null,
+        // Clear the Razorpay ID only for periods whose price/currency changed,
+        // forcing a fresh sync. Otherwise leave the existing IDs untouched.
+        ...(monthlyChanged ? { razorpayPlanIdMonthly: null } : {}),
+        ...(yearlyChanged ? { razorpayPlanIdYearly: null } : {}),
         customForUserId: parsed.data.customForUserId ?? null,
-        currency: parsed.data.currency ?? "USD",
+        currency: newCurrency,
         updatedAt: new Date(),
       })
       .where(eq(schema.pricingPlans.id, id));
@@ -217,9 +234,8 @@ export async function updatePlan(formData: FormData) {
     bail(`/admin/pricing/${id}`, `Failed to update: ${msg}`);
   }
 
-  // Push price/name changes to Razorpay — idempotent, only acts if a plan ID
-  // is missing (Razorpay doesn't allow editing existing plans, so this just
-  // catches the case where the admin filled in pricing for the first time).
+  // Auto-sync to Razorpay — recreates any IDs we just cleared, idempotent for
+  // the rest. No manual ID entry anywhere in the flow.
   const sync = await syncPlanToRazorpay(id);
 
   revalidatePath("/admin/pricing");

@@ -176,25 +176,56 @@ export default function PlanForm({ plan, action, error, customForUserId, customF
         </span>
       </label>
 
-      <div className="grid-2">
-        <label>
-          Razorpay plan ID (monthly)
-          <input
-            type="text"
-            name="razorpayPlanIdMonthly"
-            defaultValue={plan?.razorpayPlanIdMonthly ?? ""}
-            placeholder="plan_xxx (set during Phase 4)"
-          />
-        </label>
-        <label>
-          Razorpay plan ID (yearly)
-          <input
-            type="text"
-            name="razorpayPlanIdYearly"
-            defaultValue={plan?.razorpayPlanIdYearly ?? ""}
-            placeholder="plan_xxx (set during Phase 4)"
-          />
-        </label>
+      {/*
+        Razorpay plan IDs are no longer entered by hand — saving the form
+        auto-syncs the plan to Razorpay and stores the IDs. This block is
+        read-only status. If a price/currency changes, the IDs are cleared
+        on save so they re-create at the new price.
+      */}
+      <div
+        style={{
+          border: "1px solid var(--line)",
+          borderRadius: 10,
+          padding: "12px 14px",
+          background: "rgba(0,0,0,0.02)",
+          fontSize: 13,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "var(--mono)",
+            fontSize: 10,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            color: "var(--muted)",
+            marginBottom: 8,
+          }}
+        >
+          Razorpay sync
+        </div>
+        <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+          <div>
+            <span style={{ color: "var(--muted)" }}>Monthly: </span>
+            {plan?.razorpayPlanIdMonthly ? (
+              <code>{plan.razorpayPlanIdMonthly}</code>
+            ) : (
+              <em style={{ color: "var(--muted)" }}>syncs on save</em>
+            )}
+          </div>
+          <div>
+            <span style={{ color: "var(--muted)" }}>Yearly: </span>
+            {plan?.razorpayPlanIdYearly ? (
+              <code>{plan.razorpayPlanIdYearly}</code>
+            ) : (
+              <em style={{ color: "var(--muted)" }}>syncs on save</em>
+            )}
+          </div>
+        </div>
+        <p style={{ color: "var(--muted)", margin: "8px 0 0", fontSize: 12 }}>
+          Saving this plan creates/updates it in Razorpay automatically — no
+          manual IDs needed. Razorpay can&apos;t edit a live plan&apos;s price,
+          so changing the price or currency here re-creates the Razorpay plan.
+        </p>
       </div>
 
       <label>

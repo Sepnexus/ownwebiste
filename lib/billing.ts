@@ -119,12 +119,34 @@ export async function startSubscription(args: {
   shortUrl: string | null;
   status: string;
 }> {
-  // Block if they're already on an active sub.
-  const existing = await getActiveSubscriptionForUser(args.userId);
-  if (existing && (ACTIVE_STATUSES as readonly string[]).includes(existing.status)) {
-    throw new Error(
-      "You already have an active subscription. Cancel it first to switch plans.",
-    );
+  // Multi-subscription model: a customer can hold N concurrent subs (different
+  // plans, or even multiple instances of the same plan for distinct projects).
+  // We DO short-circuit if the SAME plan was just started by the same user in
+  // the last few minutes — protects against accidental double-click duplicates.
+  const RECENT_DUPLICATE_WINDOW_MS = 5 * 60 * 1000;
+  const recent = await db
+    .select()
+    .from(schema.subscriptions)
+    .where(
+      and(
+        eq(schema.subscriptions.userId, args.userId),
+        eq(schema.subscriptions.planId, args.plan.id),
+        eq(schema.subscriptions.period, args.period),
+      ),
+    )
+    .orderBy(desc(schema.subscriptions.createdAt))
+    .limit(1);
+  if (
+    recent[0] &&
+    (ACTIVE_STATUSES as readonly string[]).includes(recent[0].status) &&
+    Date.now() - new Date(recent[0].createdAt).getTime() < RECENT_DUPLICATE_WINDOW_MS
+  ) {
+    return {
+      subscriptionId: recent[0].id,
+      razorpaySubscriptionId: recent[0].razorpaySubscriptionId ?? "",
+      shortUrl: recent[0].shortUrl ?? null,
+      status: recent[0].status,
+    };
   }
 
   const rzpPlanId = await ensureRazorpayPlanId(args.plan, args.period);
@@ -197,21 +219,57 @@ export async function cancelUserSubscription(args: {
     return updated;
   }
 
-  const rzp = await rzpCancelSubscription(sub.razorpaySubscriptionId, {
-    atCycleEnd: args.atPeriodEnd,
-  });
+  // A sub still in `created`/`pending` (auth never completed) can't be
+  // cancelled via Razorpay's API — they refuse with "no billing cycle is
+  // going on". Just mark it cancelled locally; Razorpay will eventually
+  // garbage-collect the unused subscription anyway.
+  if (["created", "pending"].includes(sub.status)) {
+    const [updated] = await db
+      .update(schema.subscriptions)
+      .set({
+        status: "cancelled",
+        cancelledAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.subscriptions.id, sub.id))
+      .returning();
+    return updated;
+  }
 
-  const [updated] = await db
-    .update(schema.subscriptions)
-    .set({
-      status: rzp.status,
-      cancelAtPeriodEnd: args.atPeriodEnd,
-      cancelledAt: args.atPeriodEnd ? null : new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(schema.subscriptions.id, sub.id))
-    .returning();
-  return updated;
+  // Sub is past auth — call Razorpay normally. If they still reject (rare
+  // edge cases), fall back to a local cancel rather than blowing up.
+  try {
+    const rzp = await rzpCancelSubscription(sub.razorpaySubscriptionId, {
+      atCycleEnd: args.atPeriodEnd,
+    });
+    const [updated] = await db
+      .update(schema.subscriptions)
+      .set({
+        status: rzp.status,
+        cancelAtPeriodEnd: args.atPeriodEnd,
+        cancelledAt: args.atPeriodEnd ? null : new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.subscriptions.id, sub.id))
+      .returning();
+    return updated;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    // If Razorpay says "no billing cycle", it's effectively dead — local cancel.
+    if (msg.toLowerCase().includes("no billing cycle")) {
+      const [updated] = await db
+        .update(schema.subscriptions)
+        .set({
+          status: "cancelled",
+          cancelledAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.subscriptions.id, sub.id))
+        .returning();
+      return updated;
+    }
+    throw e;
+  }
 }
 
 /* ============== Resume + plan change ============== */
@@ -364,11 +422,31 @@ export async function syncSubscriptionFromRazorpay(args: {
 
   await applySubscriptionEvent({ event: "sync", rzpSub });
 
-  // Pull invoices for this subscription too — even if /charged didn't fire.
+  // Stuck-in-`created` cleanup: Razorpay never auto-expires a sub whose auth
+  // never completed. So if we're still in created/pending 30+ min after the
+  // last update, treat it as dead locally — drops it off the customer
+  // dashboard so they can subscribe to something else.
+  const STUCK_AFTER_MS = 30 * 60 * 1000;
+  if (
+    ["created", "pending"].includes(rzpSub.status) &&
+    Date.now() - new Date(sub.updatedAt).getTime() > STUCK_AFTER_MS
+  ) {
+    await db
+      .update(schema.subscriptions)
+      .set({ status: "expired", updatedAt: new Date() })
+      .where(eq(schema.subscriptions.id, sub.id));
+    return { status: "expired", invoicesSynced: 0, changed: true };
+  }
+
+  // Pull invoices — but ONLY record the ones that actually settled. Razorpay
+  // creates an "issued" invoice the moment auth starts; if the payment fails,
+  // that invoice should never appear in our system (no point billing the
+  // customer's UI with a phantom pending row).
   let invoicesSynced = 0;
   try {
     const items = await rzpListInvoices(sub.razorpaySubscriptionId);
     for (const inv of items) {
+      if (inv.status !== "paid") continue;
       await recordInvoiceFromCharge({
         rzpSubscriptionId: sub.razorpaySubscriptionId,
         rzpInvoiceId: inv.id,
@@ -376,7 +454,7 @@ export async function syncSubscriptionFromRazorpay(args: {
         rzpShortUrl: inv.short_url ?? null,
         amountCents: inv.amount_paid || inv.amount,
         currency: inv.currency,
-        paid: inv.status === "paid",
+        paid: true,
         paidAt: inv.paid_at ? new Date(inv.paid_at * 1000) : null,
         periodStart: inv.billing_start ? new Date(inv.billing_start * 1000) : null,
         periodEnd: inv.billing_end ? new Date(inv.billing_end * 1000) : null,

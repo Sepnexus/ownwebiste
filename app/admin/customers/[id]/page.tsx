@@ -4,7 +4,7 @@ import Link from "next/link";
 import { db, schema } from "@/lib/db";
 import { desc, eq, and, isNull, asc } from "drizzle-orm";
 import { getRecentCountersForUser } from "@/lib/usage";
-import { formatMoneyCents } from "@/lib/format";
+import { formatMoneyCents, currencySymbol } from "@/lib/format";
 import SyncSubButton from "./_components/SyncSubButton";
 
 export const metadata: Metadata = { title: "Admin · Customer" };
@@ -130,8 +130,12 @@ export default async function CustomerDetailPage({
                   </Link>
                 </td>
                 <td><span className="pill">{p.category}</span></td>
-                <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>${p.priceMonthlyUsd}</td>
-                <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>${p.priceYearlyUsd}</td>
+                <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>
+                  {currencySymbol(p.currency)}{p.priceMonthlyUsd.toLocaleString()} {p.currency}
+                </td>
+                <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>
+                  {currencySymbol(p.currency)}{p.priceYearlyUsd.toLocaleString()} {p.currency}
+                </td>
                 <td>
                   {p.visible ? <span className="pill live">Live</span> : <span className="pill hidden">Hidden</span>}
                 </td>

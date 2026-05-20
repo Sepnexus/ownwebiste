@@ -29,14 +29,36 @@ function formatPriceWithSymbol(amount: number, currency: string) {
   return `${currencySymbol(currency)}${amount.toLocaleString("en-US")}`;
 }
 
+function capitalize(s: string): string {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** A plan with at least a name AND one non-zero price has enough to render. */
+function isRenderable(p: PricingPlan): boolean {
+  if (!p.name || !p.name.trim()) return false;
+  return (p.priceMonthlyUsd ?? 0) > 0 || (p.priceYearlyUsd ?? 0) > 0;
+}
+
 export default function PricingClient({ plans }: { plans: PricingPlan[] }) {
   const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
 
+  // Group by category — but only plans with real content. Empty / partially-
+  // configured rows used to render as ghost white cards on the public page.
   const grouped = new Map<string, PricingPlan[]>();
   for (const p of plans) {
+    if (!isRenderable(p)) continue;
     if (!grouped.has(p.category)) grouped.set(p.category, []);
     grouped.get(p.category)!.push(p);
   }
+
+  // Render known categories in their preferred order, then ANY other category
+  // present in the data (e.g. "Hosting" if admin uses a custom label).
+  const knownCategories = CATEGORY_ORDER.filter((c) => grouped.has(c));
+  const extraCategories = Array.from(grouped.keys())
+    .filter((c) => !CATEGORY_ORDER.includes(c))
+    .sort();
+  const allCategories = [...knownCategories, ...extraCategories];
 
   return (
     <>
@@ -59,9 +81,9 @@ export default function PricingClient({ plans }: { plans: PricingPlan[] }) {
         </div>
       </div>
 
-      {CATEGORY_ORDER.filter((c) => grouped.has(c)).map((category) => {
+      {allCategories.map((category) => {
         const meta = CATEGORY_META[category] ?? {
-          title: category,
+          title: capitalize(category),
           subtitle: "",
           accent: "var(--ink)",
         };

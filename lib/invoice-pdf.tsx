@@ -49,19 +49,87 @@ export async function loadInvoicePdfData(invoiceId: string): Promise<InvoicePdfD
   const billingSnap =
     (inv.billingSnapshot as BillingSnapshot | null) ?? buildBillingSnapshot(user);
 
+  const planName = businessSnap.planName || plan?.name || "Subscription";
+  const planPeriod = businessSnap.planPeriod || sub?.period || "monthly";
+
   return {
     invoiceNumber: inv.invoiceNumber ?? `DRAFT-${inv.id.slice(0, 8)}`,
     issuedAt: inv.createdAt,
     paidAt: inv.paidAt,
-    status: inv.status as InvoicePdfData["status"],
+    status: inv.status,
     currency: inv.currency,
     amountCents: inv.amountCents,
+    // Subscription invoices are always a single billable line.
+    lineItems: [
+      {
+        description: planName,
+        detail:
+          planPeriod === "yearly" ? "Yearly subscription" : "Monthly subscription",
+        quantity: 1,
+        unitAmountMinor: inv.amountCents,
+      },
+    ],
     periodStart: inv.periodStart,
     periodEnd: inv.periodEnd,
     razorpayPaymentId: inv.razorpayPaymentId,
     razorpayInvoiceId: inv.razorpayInvoiceId,
+    notes: null,
     business: businessSnap,
     billing: billingSnap,
+  };
+}
+
+/** A manual-invoice line item as stored in manual_invoices.line_items. */
+export type ManualLineItem = {
+  description: string;
+  quantity: number;
+  unitAmountMinor: number;
+};
+
+/**
+ * Hydrate a manual (admin-generated) invoice into InvoicePdfData. Manual
+ * invoices have no subscription/user — the buyer is free-form.
+ */
+export async function loadManualInvoicePdfData(
+  id: string,
+): Promise<InvoicePdfData | null> {
+  const [row] = await db
+    .select()
+    .from(schema.manualInvoices)
+    .where(eq(schema.manualInvoices.id, id))
+    .limit(1);
+  if (!row) return null;
+
+  const businessSnap =
+    (row.businessSnapshot as BusinessSnapshot | null) ??
+    buildBusinessSnapshot({ planName: "", planPeriod: "monthly" });
+
+  const items = (row.lineItems as ManualLineItem[]) ?? [];
+  const addr = (row.buyerAddress as Record<string, string> | null) ?? undefined;
+
+  return {
+    invoiceNumber: row.invoiceNumber,
+    issuedAt: row.issuedAt,
+    paidAt: row.paidAt,
+    status: row.status,
+    currency: row.currency,
+    amountCents: row.amountCents,
+    lineItems: items.map((it) => ({
+      description: it.description,
+      quantity: it.quantity,
+      unitAmountMinor: it.unitAmountMinor,
+    })),
+    periodStart: null,
+    periodEnd: null,
+    razorpayPaymentId: null,
+    razorpayInvoiceId: null,
+    notes: row.notes,
+    business: businessSnap,
+    billing: {
+      name: row.buyerName,
+      email: row.buyerEmail ?? "",
+      address: addr,
+    },
   };
 }
 

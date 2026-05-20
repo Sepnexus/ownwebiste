@@ -64,6 +64,13 @@
       "when": 1778594751679,
       "tag": "0008_own_invoices",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1778984243971,
+      "tag": "0009_manual_invoices",
+      "breakpoints": true
     }
   ]
 }

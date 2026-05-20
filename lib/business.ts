@@ -87,8 +87,15 @@ export function buildBillingSnapshot(user: {
   return { name: user.name, email: user.email };
 }
 
-/** Format the registered office address as a single multi-line string. */
-export function formatAddress(addr: typeof BUSINESS.address): string {
+/** Format an address into a single multi-line string. */
+export function formatAddress(addr: {
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  country?: string;
+}): string {
   const parts = [
     addr.line1,
     addr.line2,

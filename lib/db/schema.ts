@@ -243,12 +243,61 @@ export const invoices = pgTable(
 /**
  * invoice_counters — atomic sequential allocator for invoice numbers, per year.
  * Postgres `ON CONFLICT DO UPDATE … RETURNING` makes the increment lock-free + atomic.
+ * Shared by both subscription invoices and manual invoices — one clean sequence.
  */
 export const invoiceCounters = pgTable("invoice_counters", {
   year: integer("year").primaryKey(),
   lastSeq: integer("last_seq").notNull().default(0),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * manual_invoices — admin-generated, one-off invoices NOT tied to a Razorpay
+ * subscription. For consulting, setup fees, custom work. The admin enters the
+ * buyer + free-form line items; the PDF reuses the same InvoicePdf template.
+ *
+ * line_items shape: Array<{ description: string; quantity: number;
+ *   unitAmountMinor: number }>  — unit amount in the currency's smallest unit.
+ * buyer_address shape: { line1?, line2?, city?, state?, pincode?, country? }
+ * business_snapshot: frozen Sepnexus seller profile at issue time.
+ */
+export const manualInvoices = pgTable(
+  "manual_invoices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Sequential SEP-YYYY-NNNN, allocated from the shared invoice_counters. */
+    invoiceNumber: text("invoice_number").notNull(),
+
+    buyerName: text("buyer_name").notNull(),
+    buyerEmail: text("buyer_email"),
+    buyerAddress: jsonb("buyer_address"),
+
+    lineItems: jsonb("line_items").notNull(),
+    notes: text("notes"),
+
+    currency: text("currency").notNull().default("USD"),
+    /** Total in the currency's smallest unit — sum of qty × unitAmountMinor. */
+    amountCents: integer("amount_cents").notNull(),
+
+    // unpaid | paid
+    status: text("status").notNull().default("unpaid"),
+
+    issuedAt: timestamp("issued_at", { withTimezone: true }).notNull().defaultNow(),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+
+    businessSnapshot: jsonb("business_snapshot"),
+
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("manual_invoices_number_uniq").on(t.invoiceNumber),
+    index("manual_invoices_status_idx").on(t.status, t.createdAt),
+  ],
+);
 
 /**
  * usage_events — raw record of every metered event we receive

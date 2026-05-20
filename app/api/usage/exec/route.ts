@@ -18,6 +18,13 @@ const Body = z.object({
   // Either customerId or customerEmail must be present.
   customerId: z.string().uuid().optional().nullable(),
   customerEmail: z.string().email().optional().nullable(),
+  /**
+   * Optional: target a specific subscription on a multi-sub customer. If
+   * omitted we attribute to their most recent metered (n8n) subscription.
+   * Pass this from n8n's tag/metadata for accurate billing when a customer
+   * runs more than one n8n hosting plan.
+   */
+  subscriptionId: z.string().uuid().optional().nullable(),
 
   source: z.enum(["shared-n8n", "dedicated-n8n", "manual"]).default("shared-n8n"),
   externalId: z.string().max(160).optional().nullable(),
@@ -82,6 +89,7 @@ export async function POST(req: Request) {
   try {
     const result = await ingestExecutionEvent({
       userId,
+      subscriptionId: body.subscriptionId ?? null,
       externalId: body.externalId ?? null,
       source: body.source,
       workflowId: body.workflowId ?? null,

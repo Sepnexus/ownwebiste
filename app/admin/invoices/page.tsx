@@ -38,42 +38,78 @@ export default async function AdminInvoicesPage({
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
-  const [rows, [{ total }], [paidThisMonth], [paidAllTime]] = await Promise.all([
-    db
-      .select({
-        inv: schema.invoices,
-        user: schema.users,
-        plan: schema.pricingPlans,
-      })
-      .from(schema.invoices)
-      .leftJoin(schema.users, eq(schema.users.id, schema.invoices.userId))
-      .leftJoin(schema.subscriptions, eq(schema.subscriptions.id, schema.invoices.subscriptionId))
-      .leftJoin(schema.pricingPlans, eq(schema.pricingPlans.id, schema.subscriptions.planId))
-      .where(where)
-      .orderBy(desc(schema.invoices.createdAt))
-      .limit(PAGE_SIZE)
-      .offset(offset),
-    db.select({ total: sql<number>`count(*)::int` }).from(schema.invoices).where(where),
-    db
-      .select({ cents: sql<number>`COALESCE(SUM(${schema.invoices.amountCents}),0)::int` })
-      .from(schema.invoices)
-      .where(
-        and(eq(schema.invoices.status, "paid"), gte(schema.invoices.paidAt, monthStart)),
-      ),
-    db
-      .select({ cents: sql<number>`COALESCE(SUM(${schema.invoices.amountCents}),0)::int` })
-      .from(schema.invoices)
-      .where(eq(schema.invoices.status, "paid")),
-  ]);
+  const [rows, [{ total }], paidThisMonthByCcy, paidAllTimeByCcy, manualRows] =
+    await Promise.all([
+      db
+        .select({
+          inv: schema.invoices,
+          user: schema.users,
+          plan: schema.pricingPlans,
+        })
+        .from(schema.invoices)
+        .leftJoin(schema.users, eq(schema.users.id, schema.invoices.userId))
+        .leftJoin(schema.subscriptions, eq(schema.subscriptions.id, schema.invoices.subscriptionId))
+        .leftJoin(schema.pricingPlans, eq(schema.pricingPlans.id, schema.subscriptions.planId))
+        .where(where)
+        .orderBy(desc(schema.invoices.createdAt))
+        .limit(PAGE_SIZE)
+        .offset(offset),
+      db.select({ total: sql<number>`count(*)::int` }).from(schema.invoices).where(where),
+      // Per-currency aggregates. Invoice amounts are in the currency's minor
+      // unit — summing across currencies is meaningless, so we GROUP BY ccy
+      // and render each total on its own row.
+      db
+        .select({
+          currency: schema.invoices.currency,
+          cents: sql<number>`COALESCE(SUM(${schema.invoices.amountCents}),0)::int`,
+        })
+        .from(schema.invoices)
+        .where(
+          and(eq(schema.invoices.status, "paid"), gte(schema.invoices.paidAt, monthStart)),
+        )
+        .groupBy(schema.invoices.currency),
+      db
+        .select({
+          currency: schema.invoices.currency,
+          cents: sql<number>`COALESCE(SUM(${schema.invoices.amountCents}),0)::int`,
+        })
+        .from(schema.invoices)
+        .where(eq(schema.invoices.status, "paid"))
+        .groupBy(schema.invoices.currency),
+      // Manual (admin-generated) invoices — shown in their own section, latest 50.
+      db
+        .select()
+        .from(schema.manualInvoices)
+        .orderBy(desc(schema.manualInvoices.createdAt))
+        .limit(50),
+    ]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
-      <h1>Invoices</h1>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
+        <h1 style={{ margin: 0 }}>Invoices</h1>
+        <Link
+          href="/admin/invoices/new"
+          className="btn btn-solid"
+          style={{ padding: "9px 16px", fontSize: 13 }}
+        >
+          + Generate invoice
+        </Link>
+      </div>
       <p className="admin-subtitle">
-        Every payment Razorpay has settled, across all customers. Click any row to open the
-        customer; click Open ↗ to view/download the Razorpay-hosted invoice.
+        Subscription invoices settle automatically through Razorpay. Use
+        <strong> Generate invoice</strong> for one-off billing — consulting,
+        setup fees, custom work.
       </p>
 
       <div
@@ -84,10 +120,91 @@ export default async function AdminInvoicesPage({
           marginBottom: 32,
         }}
       >
-        <Stat label="This month (paid)" value={fmtMoney(paidThisMonth.cents, "USD")} accent="var(--c-cyan)" />
-        <Stat label="All time (paid)" value={fmtMoney(paidAllTime.cents, "USD")} accent="var(--c-magenta)" />
+        <MultiCurrencyStat
+          label="This month (paid)"
+          rows={paidThisMonthByCcy}
+          accent="var(--c-cyan)"
+        />
+        <MultiCurrencyStat
+          label="All time (paid)"
+          rows={paidAllTimeByCcy}
+          accent="var(--c-magenta)"
+        />
         <Stat label="Invoices on file" value={total.toLocaleString()} accent="var(--c-yellow)" />
       </div>
+
+      {/* Manual invoices — admin-generated, one-off. */}
+      {manualRows.length > 0 && (
+        <section style={{ marginBottom: 36 }}>
+          <h2 style={{ marginBottom: 8 }}>Manual invoices</h2>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th style={{ width: 120 }}>Date</th>
+                <th style={{ width: 170 }}>Invoice #</th>
+                <th>Buyer</th>
+                <th style={{ width: 100 }}>Status</th>
+                <th style={{ width: 130, textAlign: "right" }}>Amount</th>
+                <th style={{ width: 100, textAlign: "right" }}>Invoice</th>
+              </tr>
+            </thead>
+            <tbody>
+              {manualRows.map((m) => (
+                <tr key={m.id}>
+                  <td style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--muted)" }}>
+                    {new Date(m.issuedAt).toLocaleDateString()}
+                  </td>
+                  <td>
+                    <Link
+                      href={`/admin/invoices/manual/${m.id}`}
+                      style={{
+                        color: "var(--ink)",
+                        textDecoration: "none",
+                        fontFamily: "var(--mono)",
+                        fontSize: 12,
+                      }}
+                    >
+                      {m.invoiceNumber}
+                    </Link>
+                  </td>
+                  <td>
+                    <strong>{m.buyerName}</strong>
+                    {m.buyerEmail && (
+                      <>
+                        <br />
+                        <span style={{ color: "var(--muted)", fontFamily: "var(--mono)", fontSize: 12 }}>
+                          {m.buyerEmail}
+                        </span>
+                      </>
+                    )}
+                  </td>
+                  <td>
+                    <span className={`pill ${m.status === "paid" ? "live" : "draft"}`}>
+                      {m.status}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>
+                    {fmtMoney(m.amountCents, m.currency)}
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    <Link
+                      href={`/admin/invoices/manual/${m.id}`}
+                      className="btn btn-outline"
+                      style={{ padding: "5px 10px", fontSize: 11 }}
+                    >
+                      Open
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {rows.length > 0 || q || status ? (
+        <h2 style={{ marginBottom: 8 }}>Subscription invoices</h2>
+      ) : null}
 
       <form
         action="/admin/invoices"
@@ -283,6 +400,64 @@ function Stat({ label, value, accent }: { label: string; value: string; accent: 
         {label}
       </div>
       <div style={{ fontFamily: "var(--serif)", fontSize: 28, color: "var(--ink)" }}>{value}</div>
+    </div>
+  );
+}
+
+/**
+ * Same chrome as Stat but renders one money line per currency. Sums across
+ * different currencies are nonsense — we group instead.
+ */
+function MultiCurrencyStat({
+  label,
+  rows,
+  accent,
+}: {
+  label: string;
+  rows: Array<{ currency: string; cents: number }>;
+  accent: string;
+}) {
+  return (
+    <div
+      style={{
+        border: "1px solid var(--line)",
+        borderTop: `2px solid ${accent}`,
+        borderRadius: 12,
+        padding: "18px 20px",
+        background: "rgba(255,255,255,0.6)",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "var(--mono)",
+          fontSize: 11,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "var(--muted)",
+          marginBottom: 6,
+        }}
+      >
+        {label}
+      </div>
+      {rows.length === 0 ? (
+        <div style={{ fontFamily: "var(--serif)", fontSize: 28, color: "var(--ink)" }}>—</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {rows.map((r) => (
+            <div
+              key={r.currency}
+              style={{
+                fontFamily: "var(--serif)",
+                fontSize: rows.length === 1 ? 28 : 22,
+                color: "var(--ink)",
+                lineHeight: 1.15,
+              }}
+            >
+              {fmtMoney(r.cents, r.currency)}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

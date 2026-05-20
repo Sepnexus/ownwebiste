@@ -10,11 +10,21 @@ import ChangePlanClient from "./_components/ChangePlanClient";
 export const metadata: Metadata = { title: "Change plan" };
 export const dynamic = "force-dynamic";
 
-export default async function ChangePlanPage() {
+export default async function ChangePlanPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ subscriptionId?: string }>;
+}) {
   const user = await currentUser();
   if (!user) redirect("/login?next=/dashboard/change-plan");
   if (user.role === "admin") redirect("/admin");
 
+  const { subscriptionId } = await searchParams;
+
+  // Multi-sub model: each "Change plan" link from a subscription card carries
+  // a ?subscriptionId=... so we know which one we're changing. If no id is
+  // given, fall back to the most recent non-terminal sub (back-compat with
+  // bookmarked links from the single-sub era).
   const [activeSub] = await db
     .select({ sub: schema.subscriptions, plan: schema.pricingPlans })
     .from(schema.subscriptions)
@@ -26,6 +36,7 @@ export default async function ChangePlanPage() {
         ne(schema.subscriptions.status, "expired"),
         ne(schema.subscriptions.status, "completed"),
         ne(schema.subscriptions.status, "halted"),
+        ...(subscriptionId ? [eq(schema.subscriptions.id, subscriptionId)] : []),
       ),
     )
     .orderBy(desc(schema.subscriptions.createdAt))

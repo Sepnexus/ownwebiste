@@ -119,12 +119,34 @@ export async function startSubscription(args: {
   shortUrl: string | null;
   status: string;
 }> {
-  // Block if they're already on an active sub.
-  const existing = await getActiveSubscriptionForUser(args.userId);
-  if (existing && (ACTIVE_STATUSES as readonly string[]).includes(existing.status)) {
-    throw new Error(
-      "You already have an active subscription. Cancel it first to switch plans.",
-    );
+  // Multi-subscription model: a customer can hold N concurrent subs (different
+  // plans, or even multiple instances of the same plan for distinct projects).
+  // We DO short-circuit if the SAME plan was just started by the same user in
+  // the last few minutes — protects against accidental double-click duplicates.
+  const RECENT_DUPLICATE_WINDOW_MS = 5 * 60 * 1000;
+  const recent = await db
+    .select()
+    .from(schema.subscriptions)
+    .where(
+      and(
+        eq(schema.subscriptions.userId, args.userId),
+        eq(schema.subscriptions.planId, args.plan.id),
+        eq(schema.subscriptions.period, args.period),
+      ),
+    )
+    .orderBy(desc(schema.subscriptions.createdAt))
+    .limit(1);
+  if (
+    recent[0] &&
+    (ACTIVE_STATUSES as readonly string[]).includes(recent[0].status) &&
+    Date.now() - new Date(recent[0].createdAt).getTime() < RECENT_DUPLICATE_WINDOW_MS
+  ) {
+    return {
+      subscriptionId: recent[0].id,
+      razorpaySubscriptionId: recent[0].razorpaySubscriptionId ?? "",
+      shortUrl: recent[0].shortUrl ?? null,
+      status: recent[0].status,
+    };
   }
 
   const rzpPlanId = await ensureRazorpayPlanId(args.plan, args.period);

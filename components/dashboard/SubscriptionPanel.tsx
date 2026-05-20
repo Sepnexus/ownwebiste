@@ -277,7 +277,7 @@ export default function SubscriptionPanel({
         )}
         {(live || pendingPayment) && (
           <a
-            href="/dashboard/change-plan"
+            href={`/dashboard/change-plan?subscriptionId=${subscriptionId}`}
             className="btn btn-outline"
             style={{ marginLeft: "auto" }}
           >

@@ -409,6 +409,22 @@ export async function getCurrentUsageForUser(userId: string): Promise<{
   return { counter, subscription: sub, plan };
 }
 
+/**
+ * Per-subscription usage lookup — used by the multi-sub dashboard so each
+ * subscription card can show its own counter.
+ */
+export async function getCurrentUsageForSubscription(
+  subscriptionId: string,
+): Promise<UsageCounter | null> {
+  const [sub] = await db
+    .select()
+    .from(schema.subscriptions)
+    .where(eq(schema.subscriptions.id, subscriptionId))
+    .limit(1);
+  if (!sub) return null;
+  return ensureCurrentCounter(sub, new Date());
+}
+
 /** Sum executions used across recent periods for a user — for an admin view. */
 export async function getRecentCountersForUser(userId: string, limit = 12) {
   return db

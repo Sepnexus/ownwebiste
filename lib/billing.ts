@@ -197,21 +197,57 @@ export async function cancelUserSubscription(args: {
     return updated;
   }
 
-  const rzp = await rzpCancelSubscription(sub.razorpaySubscriptionId, {
-    atCycleEnd: args.atPeriodEnd,
-  });
+  // A sub still in `created`/`pending` (auth never completed) can't be
+  // cancelled via Razorpay's API — they refuse with "no billing cycle is
+  // going on". Just mark it cancelled locally; Razorpay will eventually
+  // garbage-collect the unused subscription anyway.
+  if (["created", "pending"].includes(sub.status)) {
+    const [updated] = await db
+      .update(schema.subscriptions)
+      .set({
+        status: "cancelled",
+        cancelledAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.subscriptions.id, sub.id))
+      .returning();
+    return updated;
+  }
 
-  const [updated] = await db
-    .update(schema.subscriptions)
-    .set({
-      status: rzp.status,
-      cancelAtPeriodEnd: args.atPeriodEnd,
-      cancelledAt: args.atPeriodEnd ? null : new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(schema.subscriptions.id, sub.id))
-    .returning();
-  return updated;
+  // Sub is past auth — call Razorpay normally. If they still reject (rare
+  // edge cases), fall back to a local cancel rather than blowing up.
+  try {
+    const rzp = await rzpCancelSubscription(sub.razorpaySubscriptionId, {
+      atCycleEnd: args.atPeriodEnd,
+    });
+    const [updated] = await db
+      .update(schema.subscriptions)
+      .set({
+        status: rzp.status,
+        cancelAtPeriodEnd: args.atPeriodEnd,
+        cancelledAt: args.atPeriodEnd ? null : new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.subscriptions.id, sub.id))
+      .returning();
+    return updated;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    // If Razorpay says "no billing cycle", it's effectively dead — local cancel.
+    if (msg.toLowerCase().includes("no billing cycle")) {
+      const [updated] = await db
+        .update(schema.subscriptions)
+        .set({
+          status: "cancelled",
+          cancelledAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.subscriptions.id, sub.id))
+        .returning();
+      return updated;
+    }
+    throw e;
+  }
 }
 
 /* ============== Resume + plan change ============== */
@@ -364,11 +400,31 @@ export async function syncSubscriptionFromRazorpay(args: {
 
   await applySubscriptionEvent({ event: "sync", rzpSub });
 
-  // Pull invoices for this subscription too — even if /charged didn't fire.
+  // Stuck-in-`created` cleanup: Razorpay never auto-expires a sub whose auth
+  // never completed. So if we're still in created/pending 30+ min after the
+  // last update, treat it as dead locally — drops it off the customer
+  // dashboard so they can subscribe to something else.
+  const STUCK_AFTER_MS = 30 * 60 * 1000;
+  if (
+    ["created", "pending"].includes(rzpSub.status) &&
+    Date.now() - new Date(sub.updatedAt).getTime() > STUCK_AFTER_MS
+  ) {
+    await db
+      .update(schema.subscriptions)
+      .set({ status: "expired", updatedAt: new Date() })
+      .where(eq(schema.subscriptions.id, sub.id));
+    return { status: "expired", invoicesSynced: 0, changed: true };
+  }
+
+  // Pull invoices — but ONLY record the ones that actually settled. Razorpay
+  // creates an "issued" invoice the moment auth starts; if the payment fails,
+  // that invoice should never appear in our system (no point billing the
+  // customer's UI with a phantom pending row).
   let invoicesSynced = 0;
   try {
     const items = await rzpListInvoices(sub.razorpaySubscriptionId);
     for (const inv of items) {
+      if (inv.status !== "paid") continue;
       await recordInvoiceFromCharge({
         rzpSubscriptionId: sub.razorpaySubscriptionId,
         rzpInvoiceId: inv.id,
@@ -376,7 +432,7 @@ export async function syncSubscriptionFromRazorpay(args: {
         rzpShortUrl: inv.short_url ?? null,
         amountCents: inv.amount_paid || inv.amount,
         currency: inv.currency,
-        paid: inv.status === "paid",
+        paid: true,
         paidAt: inv.paid_at ? new Date(inv.paid_at * 1000) : null,
         periodStart: inv.billing_start ? new Date(inv.billing_start * 1000) : null,
         periodEnd: inv.billing_end ? new Date(inv.billing_end * 1000) : null,

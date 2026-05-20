@@ -38,7 +38,7 @@ export default async function AdminInvoicesPage({
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
-  const [rows, [{ total }], [paidThisMonth], [paidAllTime], manualRows] =
+  const [rows, [{ total }], paidThisMonthByCcy, paidAllTimeByCcy, manualRows] =
     await Promise.all([
       db
         .select({
@@ -55,16 +55,27 @@ export default async function AdminInvoicesPage({
         .limit(PAGE_SIZE)
         .offset(offset),
       db.select({ total: sql<number>`count(*)::int` }).from(schema.invoices).where(where),
+      // Per-currency aggregates. Invoice amounts are in the currency's minor
+      // unit — summing across currencies is meaningless, so we GROUP BY ccy
+      // and render each total on its own row.
       db
-        .select({ cents: sql<number>`COALESCE(SUM(${schema.invoices.amountCents}),0)::int` })
+        .select({
+          currency: schema.invoices.currency,
+          cents: sql<number>`COALESCE(SUM(${schema.invoices.amountCents}),0)::int`,
+        })
         .from(schema.invoices)
         .where(
           and(eq(schema.invoices.status, "paid"), gte(schema.invoices.paidAt, monthStart)),
-        ),
+        )
+        .groupBy(schema.invoices.currency),
       db
-        .select({ cents: sql<number>`COALESCE(SUM(${schema.invoices.amountCents}),0)::int` })
+        .select({
+          currency: schema.invoices.currency,
+          cents: sql<number>`COALESCE(SUM(${schema.invoices.amountCents}),0)::int`,
+        })
         .from(schema.invoices)
-        .where(eq(schema.invoices.status, "paid")),
+        .where(eq(schema.invoices.status, "paid"))
+        .groupBy(schema.invoices.currency),
       // Manual (admin-generated) invoices — shown in their own section, latest 50.
       db
         .select()
@@ -109,8 +120,16 @@ export default async function AdminInvoicesPage({
           marginBottom: 32,
         }}
       >
-        <Stat label="This month (paid)" value={fmtMoney(paidThisMonth.cents, "USD")} accent="var(--c-cyan)" />
-        <Stat label="All time (paid)" value={fmtMoney(paidAllTime.cents, "USD")} accent="var(--c-magenta)" />
+        <MultiCurrencyStat
+          label="This month (paid)"
+          rows={paidThisMonthByCcy}
+          accent="var(--c-cyan)"
+        />
+        <MultiCurrencyStat
+          label="All time (paid)"
+          rows={paidAllTimeByCcy}
+          accent="var(--c-magenta)"
+        />
         <Stat label="Invoices on file" value={total.toLocaleString()} accent="var(--c-yellow)" />
       </div>
 
@@ -381,6 +400,64 @@ function Stat({ label, value, accent }: { label: string; value: string; accent: 
         {label}
       </div>
       <div style={{ fontFamily: "var(--serif)", fontSize: 28, color: "var(--ink)" }}>{value}</div>
+    </div>
+  );
+}
+
+/**
+ * Same chrome as Stat but renders one money line per currency. Sums across
+ * different currencies are nonsense — we group instead.
+ */
+function MultiCurrencyStat({
+  label,
+  rows,
+  accent,
+}: {
+  label: string;
+  rows: Array<{ currency: string; cents: number }>;
+  accent: string;
+}) {
+  return (
+    <div
+      style={{
+        border: "1px solid var(--line)",
+        borderTop: `2px solid ${accent}`,
+        borderRadius: 12,
+        padding: "18px 20px",
+        background: "rgba(255,255,255,0.6)",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "var(--mono)",
+          fontSize: 11,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "var(--muted)",
+          marginBottom: 6,
+        }}
+      >
+        {label}
+      </div>
+      {rows.length === 0 ? (
+        <div style={{ fontFamily: "var(--serif)", fontSize: 28, color: "var(--ink)" }}>—</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {rows.map((r) => (
+            <div
+              key={r.currency}
+              style={{
+                fontFamily: "var(--serif)",
+                fontSize: rows.length === 1 ? 28 : 22,
+                color: "var(--ink)",
+                lineHeight: 1.15,
+              }}
+            >
+              {fmtMoney(r.cents, r.currency)}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

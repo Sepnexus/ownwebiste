@@ -4,6 +4,7 @@ import { db, schema } from "@/lib/db";
 import { asc, eq } from "drizzle-orm";
 import { deletePlan, toggleVisibility } from "./_actions";
 import SyncRazorpay from "./_components/SyncRazorpay";
+import { currencySymbol } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Admin · Pricing" };
 export const dynamic = "force-dynamic";
@@ -104,10 +105,10 @@ export default async function AdminPricingPage() {
                   )}
                 </td>
                 <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>
-                  ${p.priceMonthlyUsd}
+                  {currencySymbol(p.currency)}{p.priceMonthlyUsd.toLocaleString()} {p.currency}
                 </td>
                 <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>
-                  ${p.priceYearlyUsd}
+                  {currencySymbol(p.currency)}{p.priceYearlyUsd.toLocaleString()} {p.currency}
                 </td>
                 <td>
                   {p.visible ? (

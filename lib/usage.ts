@@ -6,6 +6,12 @@ import type { UsageCounter, Subscription, PricingPlan } from "./db/schema";
 
 export type IngestArgs = {
   userId: string;
+  /**
+   * Optional explicit target sub. Multi-sub model: if the n8n side knows which
+   * subscription owns this execution, pass it. Otherwise we resolve the
+   * customer's most-recent metered subscription (plan with executions_included).
+   */
+  subscriptionId?: string | null;
   externalId?: string | null;
   source: "shared-n8n" | "dedicated-n8n" | "manual";
   workflowId?: string | null;
@@ -30,8 +36,12 @@ export async function ingestExecutionEvent(args: IngestArgs): Promise<{
   duplicate: boolean;
   counterId?: string;
 }> {
-  // Find the active sub for this user.
-  const sub = await getActiveSubscription(args.userId);
+  // Resolve the target subscription. If the caller passed an explicit
+  // subscriptionId (preferred — multi-sub-safe), use it. Otherwise we resolve
+  // the most-recent metered sub for this user (plan has executions_included).
+  const sub = args.subscriptionId
+    ? await getSubscriptionById(args.subscriptionId, args.userId)
+    : await getActiveMeteredSubscription(args.userId);
 
   // Insert the raw event. If we have an externalId and it's a duplicate, the
   // unique index throws; we catch and return early.
@@ -83,19 +93,47 @@ export async function ingestExecutionEvent(args: IngestArgs): Promise<{
 
 /* ============== Counter management ============== */
 
-async function getActiveSubscription(userId: string) {
+/**
+ * Active-and-metered: returns the most recent non-terminal sub for this user
+ * whose plan has executions_included set (i.e. a usage-billed plan, like n8n
+ * hosting). Plans without metering (one-time SaaS hosting, custom flat-fees)
+ * are skipped — they shouldn't catch n8n execution events.
+ */
+async function getActiveMeteredSubscription(userId: string) {
   const [row] = await db
-    .select()
+    .select({ sub: schema.subscriptions })
     .from(schema.subscriptions)
+    .leftJoin(
+      schema.pricingPlans,
+      eq(schema.pricingPlans.id, schema.subscriptions.planId),
+    )
     .where(
       and(
         eq(schema.subscriptions.userId, userId),
         sql`${schema.subscriptions.status} IN ('authenticated','active','pending','created')`,
+        sql`${schema.pricingPlans.executionsIncluded} IS NOT NULL`,
       ),
     )
     .orderBy(sql`${schema.subscriptions.createdAt} DESC`)
     .limit(1);
+  return row?.sub ?? null;
+}
+
+/** Get one sub by id, scoped to the calling user. Multi-sub-safe lookup. */
+async function getSubscriptionById(id: string, userId: string) {
+  const [row] = await db
+    .select()
+    .from(schema.subscriptions)
+    .where(
+      and(eq(schema.subscriptions.id, id), eq(schema.subscriptions.userId, userId)),
+    )
+    .limit(1);
   return row ?? null;
+}
+
+/** Back-compat — used by getCurrentUsageForUser below. */
+async function getActiveSubscription(userId: string) {
+  return getActiveMeteredSubscription(userId);
 }
 
 async function getPlan(planId: string): Promise<PricingPlan | null> {

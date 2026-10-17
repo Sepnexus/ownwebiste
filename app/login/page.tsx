@@ -37,9 +37,9 @@ export default function LoginPage() {
             borderTop: "1px solid var(--line)",
           }}
         >
-          New to Sepnexus? Access is invitation-only —{" "}
+          New to Sepnexus? Accounts are set up by our team —{" "}
           <a href="/contact?type=request_access" style={{ color: "var(--ink)" }}>
-            request an invite →
+            request access →
           </a>
         </p>
       </div>

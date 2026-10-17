@@ -68,15 +68,7 @@ export default async function SubscribePage({
             you a one-time link to set a password and access your dashboard.
           </p>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 28,
-              marginTop: 32,
-            }}
-            className="subscribe-grid"
-          >
+          <div className="subscribe-grid">
             {/* Plan summary */}
             <div
               className={`pricing-card ${plan.highlight ? "highlight" : ""}`}

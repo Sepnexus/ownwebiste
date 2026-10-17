@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { BUSINESS } from "@/lib/business";
 
 export default function Footer() {
   return (
@@ -9,15 +10,16 @@ export default function Footer() {
           <Image src="/assets/sepnexus-mark.png" alt="" width={36} height={36} />
           <span className="word">Sepnexus</span>
           <p>
-            Agentic systems, automation and managed cloud for teams who refuse the status quo.
+            AI agents, automation and custom software for real estate investors and growing
+            businesses.
           </p>
         </div>
         <div className="footer-col">
-          <h4>Practice</h4>
-          <Link href="/services#agents">Agents</Link>
+          <h4>Services</h4>
+          <Link href="/services#estate360">Estate 360 agents</Link>
           <Link href="/services#automation">Automation</Link>
-          <Link href="/services#data">Data</Link>
-          <Link href="/services#hosting">Cloud</Link>
+          <Link href="/services#deals">Deal tools</Link>
+          <Link href="/services#hosting">Hosting</Link>
         </div>
         <div className="footer-col">
           <h4>Company</h4>
@@ -41,7 +43,9 @@ export default function Footer() {
         </div>
       </div>
       <div className="footer-bottom">
-        <span>© {new Date().getFullYear()} Sepnexus, Inc.</span>
+        <span>
+          © {new Date().getFullYear()} {BUSINESS.legalName}
+        </span>
         <span>Crafted for systems that think.</span>
       </div>
     </footer>

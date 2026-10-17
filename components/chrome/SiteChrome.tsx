@@ -2,65 +2,43 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
 import { subscribeScroll } from "@/lib/hooks/scroll";
+
+// Routes where people fill in forms or work in the app: keep the plain native cursor.
+const APP_ROUTES = ["/dashboard", "/admin", "/login", "/subscribe", "/forgot", "/reset", "/invite"];
 
 export default function SiteChrome() {
   const pathname = usePathname();
   const cursorRef = useRef<HTMLDivElement>(null);
-  const introRef = useRef<HTMLDivElement>(null);
   const sideRef = useRef<HTMLDivElement>(null);
 
-  // Intro overlay — runs once per session, only on the homepage.
-  useEffect(() => {
-    if (pathname !== "/") return;
-    if (typeof window === "undefined") return;
-    if (sessionStorage.getItem("sn_intro_shown")) return;
-    sessionStorage.setItem("sn_intro_shown", "1");
-
-    const intro = introRef.current;
-    if (!intro) return;
-    intro.classList.add("active");
-    document.documentElement.classList.add("intro-locked");
-
-    const t = setTimeout(() => {
-      intro.classList.add("gone");
-      document.documentElement.classList.remove("intro-locked");
-    }, 1700);
-    const t2 = setTimeout(() => {
-      intro.style.display = "none";
-    }, 3000);
-    return () => {
-      clearTimeout(t);
-      clearTimeout(t2);
-      document.documentElement.classList.remove("intro-locked");
-    };
-  }, [pathname]);
-
-  // System cursor — desktop only. Re-binds when the route changes.
+  // Bracket accent around the native cursor — desktop marketing pages only.
+  // Positioned 1:1 on mousemove (no easing loop), so it never lags the pointer.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.matchMedia("(pointer: coarse)").matches) return;
     const c = cursorRef.current;
     if (!c) return;
+    const isApp = APP_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+    if (
+      isApp ||
+      window.matchMedia("(pointer: coarse)").matches ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      c.style.display = "none";
+      return;
+    }
+    c.style.display = "";
+    c.style.opacity = "0";
 
-    let x = innerWidth / 2,
-      y = innerHeight / 2;
-    let cx = x,
-      cy = y;
-    let raf = 0;
     const onMove = (e: MouseEvent) => {
-      x = e.clientX;
-      y = e.clientY;
+      c.style.opacity = "1";
+      c.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
     };
-    const tick = () => {
-      cx += (x - cx) * 0.22;
-      cy += (y - cy) * 0.22;
-      c.style.transform = `translate(${cx}px, ${cy}px) translate(-50%, -50%)`;
-      raf = requestAnimationFrame(tick);
+    const onLeave = () => {
+      c.style.opacity = "0";
     };
-    addEventListener("mousemove", onMove);
-    raf = requestAnimationFrame(tick);
+    addEventListener("mousemove", onMove, { passive: true });
+    document.documentElement.addEventListener("mouseleave", onLeave);
 
     const setMode = (m: string) => c.setAttribute("data-mode", m);
     const handlers: (() => void)[] = [];
@@ -80,14 +58,14 @@ export default function SiteChrome() {
       bind("a, button, .btn", "click");
       bind(".service-card", "service");
       bind(".terminal", "code");
-      bind(".hero-mark-wrap", "spin");
-    }, pathname === "/" ? 1900 : 100);
+    }, 100);
 
     return () => {
       removeEventListener("mousemove", onMove);
-      cancelAnimationFrame(raf);
+      document.documentElement.removeEventListener("mouseleave", onLeave);
       clearTimeout(bindTimer);
       handlers.forEach((fn) => fn());
+      setMode("idle");
     };
   }, [pathname]);
 
@@ -145,24 +123,6 @@ export default function SiteChrome() {
 
   return (
     <>
-      <div className="intro" ref={introRef}>
-        <div className="intro-inner">
-          <Image
-            className="intro-mark"
-            src="/assets/sepnexus-mark.png"
-            alt="Sepnexus"
-            width={120}
-            height={120}
-            priority
-          />
-          <div className="intro-word">
-            <span>S E P N E X U S</span>
-          </div>
-          <div className="intro-bar" />
-          <div className="intro-loader">Initialising agentic systems</div>
-        </div>
-      </div>
-
       <div className="orbs" aria-hidden="true">
         <div className="orb o1" />
         <div className="orb o2" />

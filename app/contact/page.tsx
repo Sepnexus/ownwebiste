@@ -7,7 +7,7 @@ import ContactForm from "./_components/ContactForm";
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Tell Sepnexus about the loop you want closed. Engagements are invitation-based; we respond within 48 hours.",
+    "Tell Sepnexus what you want automated or built — AI agents, lead follow-up, deal tools, dashboards or hosting. We reply within 48 hours.",
 };
 
 export default function ContactPage() {
@@ -23,8 +23,8 @@ export default function ContactPage() {
             <em>the loop you want closed.</em>
           </h1>
           <p className="page-lede reveal">
-            Sepnexus is invitation-based. Drop us a line — we read every message and reply within
-            48 hours from akshay@sepnexus.com.
+            Lead follow-up, AI calling, comping, reporting, hosting — or something we haven&apos;t
+            listed. We read every message and reply within 48 hours from akshay@sepnexus.com.
           </p>
           <Suspense fallback={null}>
             <ContactForm />

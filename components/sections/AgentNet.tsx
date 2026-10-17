@@ -4,12 +4,12 @@ import { useRef } from "react";
 import { usePinProgress, clamp, easeOutCubic } from "@/lib/hooks/scroll";
 
 const NODES = [
-  { id: "core", x: 50, y: 50, r: 28, label: "Sepnexus core", color: "var(--ink)" },
-  { id: "research", x: 18, y: 22, r: 14, label: "Research", color: "var(--c-cyan)" },
-  { id: "decide", x: 82, y: 22, r: 14, label: "Decide", color: "var(--c-yellow)" },
-  { id: "act", x: 86, y: 70, r: 14, label: "Act", color: "var(--c-orange)" },
-  { id: "observe", x: 50, y: 90, r: 14, label: "Observe", color: "var(--c-red)" },
-  { id: "memory", x: 14, y: 70, r: 14, label: "Memory", color: "var(--c-magenta)" },
+  { id: "core", x: 50, y: 50, r: 28, label: "Estate 360", color: "var(--ink)" },
+  { id: "research", x: 18, y: 22, r: 14, label: "Lead sources", color: "var(--c-cyan)" },
+  { id: "decide", x: 82, y: 22, r: 14, label: "AI texting", color: "var(--c-yellow)" },
+  { id: "act", x: 86, y: 70, r: 14, label: "AI calling", color: "var(--c-orange)" },
+  { id: "observe", x: 50, y: 90, r: 14, label: "Comps & offers", color: "var(--c-red)" },
+  { id: "memory", x: 14, y: 70, r: 14, label: "CRM & KPIs", color: "var(--c-magenta)" },
 ];
 const EDGES: [string, string][] = [
   ["core", "research"],
@@ -24,10 +24,10 @@ const EDGES: [string, string][] = [
   ["memory", "research"],
 ];
 const STEPS = [
-  { n: "01", label: "Ingest signal from your stack" },
-  { n: "02", label: "Plan with reasoning + tools" },
-  { n: "03", label: "Act inside your systems" },
-  { n: "04", label: "Observe outcomes, learn, repeat" },
+  { n: "01", label: "Catch every lead the moment it lands" },
+  { n: "02", label: "Text or call, qualify, book the appointment" },
+  { n: "03", label: "Pull comps and prepare the offer" },
+  { n: "04", label: "Log it in your CRM and report the numbers" },
 ];
 
 export default function AgentNet() {
@@ -48,8 +48,9 @@ export default function AgentNet() {
             Agents that <em className="serif-italic">close the loop.</em>
           </h2>
           <p className="lede" style={{ marginTop: 18 }}>
-            Each Sepnexus deployment is a sealed loop — perception, planning, action and learning
-            — wired into your stack and supervised in real time.
+            Estate 360 connects the whole deal cycle, from the first text to the offer on the
+            table. Every step runs inside your CRM, and your team can see it and step in at any
+            time.
           </p>
           <div className="step-list">
             {STEPS.map((s, i) => (

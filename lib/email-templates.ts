@@ -397,7 +397,7 @@ export async function sendInviteEmail(args: {
     <p style="margin:0 0 16px;">${greeting}</p>
     <p style="margin:0 0 16px;">
       ${inviter}Sepnexus has invited you to create an account.
-      Sepnexus is invitation-only — this link is yours alone and expires in 7 days.
+      This link is yours alone and expires in 7 days.
     </p>
     <p style="margin:0 0 24px;">
       <a href="${args.acceptUrl}" style="display:inline-block;background:#14110f;color:#f6f3ec;text-decoration:none;padding:12px 22px;border-radius:999px;font-family:-apple-system,sans-serif;font-size:14px;font-weight:500;">

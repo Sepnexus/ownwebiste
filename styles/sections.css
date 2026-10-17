@@ -397,7 +397,7 @@
 }
 
 /* ============== CTA ============== */
-.cta {
+section.cta {
   position: relative;
   padding: clamp(120px, 18vh, 200px) var(--pad);
   text-align: center;

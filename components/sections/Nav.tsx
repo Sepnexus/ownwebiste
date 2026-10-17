@@ -43,14 +43,26 @@ export default function Nav() {
             {l.label}
           </Link>
         ))}
+        <div className="nav-mobile-actions">
+          <Link
+            href="/contact?type=project_inquiry"
+            className="btn btn-solid"
+            onClick={() => setOpen(false)}
+          >
+            Start a project
+          </Link>
+          <Link href="/login" className="btn btn-outline" onClick={() => setOpen(false)}>
+            Sign in
+          </Link>
+        </div>
       </div>
 
       <div className="nav-cta">
         <Link href="/login" className="btn btn-ghost">
           Sign in
         </Link>
-        <Link href="/contact?type=request_access" className="btn btn-solid">
-          Request access
+        <Link href="/contact?type=project_inquiry" className="btn btn-solid">
+          Start a project
           <svg className="arrow" viewBox="0 0 14 14" fill="none">
             <path
               d="M3 11L11 3M11 3H4M11 3V10"

@@ -4,16 +4,16 @@ import SiteChrome from "@/components/chrome/SiteChrome";
 
 export const metadata: Metadata = {
   title: {
-    default: "Sepnexus — The infrastructure of intelligent work",
+    default: "Sepnexus — AI agents & automation for real estate investors",
     template: "%s · Sepnexus",
   },
   description:
-    "Sepnexus is a studio building autonomous agents, end-to-end automation and managed cloud for teams who refuse the status quo.",
+    "Sepnexus builds AI agents, automation and custom software for real estate investors and growing businesses: AI texting and calling, lead qualification, comping and underwriting tools, KPI dashboards and managed hosting.",
   metadataBase: new URL(process.env.PUBLIC_BASE_URL ?? "https://sepnexus.com"),
   openGraph: {
-    title: "Sepnexus — The infrastructure of intelligent work",
+    title: "Sepnexus — AI agents & automation for real estate investors",
     description:
-      "A studio building autonomous agents, end-to-end automation and resilient cloud systems.",
+      "AI agents that text, call and qualify leads, plus comping tools, KPI dashboards and managed hosting — built for real estate investors and growing businesses.",
     url: "/",
     siteName: "Sepnexus",
     type: "website",

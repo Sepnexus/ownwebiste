@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 
 const TYPES = [
   { value: "contact", label: "General inquiry" },
-  { value: "request_access", label: "Request access (invitation)" },
+  { value: "request_access", label: "Request dashboard access" },
   { value: "project_inquiry", label: "Custom project quote" },
   { value: "support", label: "Existing customer — support" },
 ];
@@ -120,7 +120,13 @@ export default function ContactForm() {
           ))}
         </select>
       </label>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))",
+          gap: 18,
+        }}
+      >
         <label>
           Your name
           <input name="name" type="text" required autoComplete="name" />

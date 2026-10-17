@@ -8,8 +8,13 @@ function StatNumber({ value }: { value: string }) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const m = String(value).match(/([<>~]?)(\d+(?:\.\d+)?)([^\d]*)/);
-    if (!m) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setV(value);
+      return;
+    }
+    const m = String(value).match(/^([<>~]?)(\d+(?:\.\d+)?)(.*)$/);
+    // Only count up plain numbers ("15", "8+"); leave values like "24/7" as written.
+    if (!m || /\d/.test(m[3])) {
       setV(value);
       return;
     }
@@ -56,10 +61,10 @@ export default function Stats() {
       <div className="container">
         <div className="stats">
           {[
-            { n: "01", v: "11M+", l: "Agent runs orchestrated" },
-            { n: "02", v: "<60s", l: "Median resolution time" },
-            { n: "03", v: "47", l: "Production deployments" },
-            { n: "04", v: "0", l: "Public incidents · 18 mo" },
+            { n: "01", v: "15", l: "SMS campaigns qualified by AI" },
+            { n: "02", v: "8", l: "Offer calculators in one tool" },
+            { n: "03", v: "10", l: "KPI views in one wholesaling OS" },
+            { n: "04", v: "24/7", l: "Lead follow-up, no days off" },
           ].map((s, i) => (
             <div className="stat reveal" key={i}>
               <div className="num counting">

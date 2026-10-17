@@ -65,12 +65,12 @@ export default function CTA() {
           that <em>runs itself.</em>
         </h2>
         <p className="lede reveal" style={{ margin: "32px auto 0", textAlign: "center" }}>
-          Sepnexus is invitation-only. Tell us about your business — if there&apos;s a fit,
-          we&apos;ll get back within 48 hours with a path forward.
+          Tell us what&apos;s eating your team&apos;s time — lead follow-up, comping, reporting
+          or something else. We&apos;ll reply within 48 hours with a clear next step.
         </p>
         <div className="cta-actions reveal">
-          <Link href="/contact?type=request_access" className="btn btn-solid">
-            Request an invite
+          <Link href="/contact?type=project_inquiry" className="btn btn-solid">
+            Start a project
             <svg className="arrow" viewBox="0 0 14 14" fill="none">
               <path
                 d="M3 11L11 3M11 3H4M11 3V10"

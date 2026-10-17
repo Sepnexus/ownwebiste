@@ -21,57 +21,57 @@ const SERVICES: Service[] = [
     n: "01",
     color: "var(--c-magenta)",
     feature: true,
-    title: "Autonomous AI agents",
-    body: "Multi-step agents that operate your business 24/7 — researching, deciding, executing. Built on Claude, GPT and Gemini with custom tool layers, memory and guardrails.",
-    tags: ["Tool use", "Memory", "RAG", "Eval harness"],
+    title: "Estate 360 agents",
+    body: "AI agents for real estate investors. They text and call sellers, ask the qualifying questions, book appointments and hand warm leads to your acquisitions team — with every conversation logged in your CRM.",
+    tags: ["AI texting", "AI calling", "Lead qualification", "CRM sync"],
     glyph: "agent",
-    href: "/services#agents",
+    href: "/services#estate360",
   },
   {
     n: "02",
     color: "var(--c-orange)",
-    title: "Process automation",
-    body: "End the copy-paste economy. We replace internal workflows with deterministic pipelines and human-in-the-loop reviews.",
-    tags: ["n8n", "Temporal", "Zapier"],
+    title: "Follow-up automation",
+    body: "Every lead gets an answer in seconds, not hours. SMS and email campaigns, AI reply sorting, appointment booking and CRM updates that run on their own.",
+    tags: ["GoHighLevel", "n8n", "OpenAI"],
     glyph: "loop",
     href: "/services#automation",
   },
   {
     n: "03",
     color: "var(--c-yellow)",
-    title: "Data pipelines & analytics",
-    body: "From ingestion to decision. Streaming and batch pipelines, semantic layers and self-serve dashboards.",
-    tags: ["dbt", "Airflow", "Postgres"],
+    title: "Deal tools & dashboards",
+    body: "Comps, ARV, AI repair estimates and offer calculators in one place — plus dashboards for leads, spend, offers, contracts and revenue.",
+    tags: ["Comps & ARV", "Offer calculators", "KPIs"],
     glyph: "pipe",
-    href: "/services#data",
+    href: "/services#deals",
   },
   {
     n: "04",
     color: "var(--c-cyan)",
     feature: true,
-    title: "Cloud & managed hosting",
-    body: "We design, deploy and operate the infrastructure your agents and apps run on — with SLAs that hold up under enterprise scrutiny.",
-    tags: ["AWS", "GCP", "Kubernetes", "Terraform"],
+    title: "Managed hosting",
+    body: "We host what we build. Your n8n workflows, agents, dashboards and web apps run on servers we set up, back up and monitor — so nothing goes quiet while you're out closing.",
+    tags: ["n8n hosting", "App hosting", "Backups", "Monitoring"],
     glyph: "cloud",
     href: "/services#hosting",
   },
   {
     n: "05",
     color: "var(--c-purple)",
-    title: "Custom AI integrations",
-    body: "Slot intelligence into the tools you already use. CRMs, ERPs, comms, ticketing — without ripping anything out.",
-    tags: ["Salesforce", "HubSpot", "Slack"],
+    title: "AI for any business",
+    body: "Not in real estate? The same toolkit works anywhere: AI assistants for sales and support, document automation, and connections between the apps you already pay for.",
+    tags: ["Claude", "OpenAI", "APIs", "MCP"],
     glyph: "plug",
-    href: "/services#integrations",
+    href: "/services#business",
   },
   {
     n: "06",
     color: "var(--c-red)",
-    title: "Web & app development",
-    body: "Studio-grade interfaces that don't feel like enterprise software. Built for the agents underneath.",
-    tags: ["Next.js", "React", "Swift"],
+    title: "Web apps & portals",
+    body: "Partner portals, hiring portals, client dashboards and full SaaS products — designed, built and run by the same team behind your automations.",
+    tags: ["Next.js", "React", "Supabase"],
     glyph: "frame",
-    href: "/services#development",
+    href: "/services#apps",
   },
 ];
 
@@ -219,16 +219,16 @@ export default function Services() {
           <div>
             <span className="eyebrow reveal">02 — Capabilities</span>
             <h2 className="section-title reveal" style={{ marginTop: 16 }}>
-              Six disciplines.
+              Built for real estate.
               <br />
-              <em className="serif-italic">One operating system</em>
-              <br /> for your business.
+              <em className="serif-italic">Useful in</em>
+              <br /> any business.
             </h2>
           </div>
           <p className="lede reveal">
-            We don&apos;t sell a product. We assemble bespoke intelligence for each client —
-            pulling from a deep stack of agentic, automation and infrastructure work we&apos;ve
-            shipped for a decade.
+            Most of what we build started in real estate investing — lead follow-up, AI calling,
+            comping and KPI tracking. Each project is put together from tools we&apos;ve already
+            shipped, then shaped around how your team actually works.
           </p>
         </div>
         <div className="services-grid">

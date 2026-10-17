@@ -21,9 +21,15 @@ const CATEGORY_META: Record<
       "We deploy and operate the infrastructure your SaaS application runs on — managed databases, monitoring, deploys, on-call. You ship product.",
     accent: "var(--c-cyan)",
   },
+  hosting: {
+    title: "Managed web hosting",
+    subtitle:
+      "Websites and web apps hosted, secured and monitored by us — with SSL and updates handled for you.",
+    accent: "var(--c-yellow)",
+  },
 };
 
-const CATEGORY_ORDER = ["n8n", "saas"];
+const CATEGORY_ORDER = ["n8n", "saas", "hosting"];
 
 function formatPriceWithSymbol(amount: number, currency: string) {
   return `${currencySymbol(currency)}${amount.toLocaleString("en-US")}`;
@@ -127,7 +133,7 @@ export default function PricingClient({ plans }: { plans: PricingPlan[] }) {
                         <li key={f}>{f}</li>
                       ))}
                     </ul>
-                    <div className="cta">
+                    <div className="plan-cta">
                       {(period === "monthly" ? p.razorpayPlanIdMonthly : p.razorpayPlanIdYearly) ? (
                         <Link
                           href={`/subscribe?planId=${p.id}&period=${period}`}

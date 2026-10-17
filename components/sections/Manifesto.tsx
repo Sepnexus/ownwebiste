@@ -8,7 +8,7 @@ export default function Manifesto() {
   const p = usePinProgress(containerRef);
 
   const text =
-    "We design systems that think, decide and act — quietly, continuously, and with the precision your business deserves. Not chatbots. Not dashboards. Real, working ※intelligence※.";
+    "Most leads go cold waiting for a reply. Most deals stall in a spreadsheet. We build agents that answer, qualify, comp and report — around the clock, inside the tools you already use. Less busywork. More ※closed※ ※deals※.";
   const words = useMemo(() => text.split(" "), []);
   const litCount = Math.floor(clamp((p - 0.05) / 0.8, 0, 1) * words.length);
 

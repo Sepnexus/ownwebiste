@@ -281,7 +281,7 @@
 .pricing-card.highlight ul li::before {
   color: var(--c-cyan);
 }
-.pricing-card .cta .btn {
+.pricing-card .plan-cta .btn {
   width: 100%;
   justify-content: center;
   padding: 14px 18px;
@@ -294,15 +294,33 @@
   text-transform: uppercase;
   color: var(--muted);
 }
-.pricing-card .cta {
+.pricing-card .plan-cta {
   margin-top: auto;
+}
+
+/* Checkout: plan summary + form side by side on wide screens, stacked on phones */
+.subscribe-grid {
+  display: grid;
+  gap: 28px;
+  margin-top: 32px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 880px) {
+  .subscribe-grid { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
 }
 
 /* Contact form */
 .contact-form {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   max-width: 640px;
+}
+.contact-form input:not([type="checkbox"]):not([type="radio"]),
+.contact-form select,
+.contact-form textarea {
+  width: 100%;
+  min-width: 0;
 }
 .contact-form label {
   display: grid;
@@ -829,7 +847,9 @@
 .nav.menu-open .nav-toggle span:nth-child(1) { top: 16px; transform: rotate(45deg); }
 .nav.menu-open .nav-toggle span:nth-child(2) { top: 16px; transform: rotate(-45deg); }
 
-@media (max-width: 880px) {
+.nav-mobile-actions { display: none; }
+
+@media (max-width: 960px) {
   .nav-toggle { display: block; }
   .nav-cta { display: none; }
   .nav-links {
@@ -850,4 +870,20 @@
     font-family: var(--serif) !important;
     letter-spacing: -0.01em !important;
   }
+  .nav-mobile-actions {
+    display: grid;
+    gap: 10px;
+    width: 100%;
+    margin-top: auto;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .nav-links .nav-mobile-actions .btn {
+    justify-content: center;
+    padding: 14px 18px;
+    font-size: 15px !important;
+    font-family: var(--sans) !important;
+    letter-spacing: 0 !important;
+  }
+  .nav-links .nav-mobile-actions .btn-solid { color: var(--bg); }
+  .nav-links .nav-mobile-actions .btn-outline { color: var(--ink); }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useScrollProgress, RL } from "@/lib/hooks/scroll";
 
@@ -8,46 +8,53 @@ export default function Hero() {
   const ref = useRef<HTMLElement>(null);
   const markRef = useRef<HTMLDivElement>(null);
   const p = useScrollProgress(ref);
+  const [still, setStill] = useState(false);
 
   useEffect(() => {
     const el = markRef.current;
-    if (!el || window.matchMedia("(pointer: coarse)").matches) return;
+    if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setStill(true);
+      return;
+    }
+    if (window.matchMedia("(pointer: coarse)").matches) return;
     let tx = 0,
       ty = 0,
       cx = 0,
       cy = 0;
-    const onMove = (e: MouseEvent) => {
-      const r = el.getBoundingClientRect();
-      const dx = e.clientX - (r.left + r.width / 2);
-      const dy = e.clientY - (r.top + r.height / 2);
-      tx = dx * 0.06;
-      ty = dy * 0.06;
-    };
     let raf = 0;
+    // Ease toward the pointer, then stop the loop once it has settled.
     const tick = () => {
       cx += (tx - cx) * 0.08;
       cy += (ty - cy) * 0.08;
       el.style.setProperty("--mx", `${cx}px`);
       el.style.setProperty("--my", `${cy}px`);
-      raf = requestAnimationFrame(tick);
+      raf = Math.abs(tx - cx) > 0.1 || Math.abs(ty - cy) > 0.1 ? requestAnimationFrame(tick) : 0;
     };
-    window.addEventListener("mousemove", onMove);
-    raf = requestAnimationFrame(tick);
+    const onMove = (e: MouseEvent) => {
+      const r = el.getBoundingClientRect();
+      tx = (e.clientX - (r.left + r.width / 2)) * 0.06;
+      ty = (e.clientY - (r.top + r.height / 2)) * 0.06;
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+    window.addEventListener("mousemove", onMove, { passive: true });
     return () => {
       window.removeEventListener("mousemove", onMove);
       cancelAnimationFrame(raf);
     };
   }, []);
 
-  const markStyle: React.CSSProperties = {
-    transform: `translate3d(calc(var(--mx, 0px) + ${p * 80}px), calc(var(--my, 0px) + ${p * -120}px), 0) scale(${1 + p * 0.1})`,
-    opacity: 1 - p * 0.4,
-  };
+  const markStyle: React.CSSProperties | undefined = still
+    ? undefined
+    : {
+        transform: `translate3d(calc(var(--mx, 0px) + ${p * 80}px), calc(var(--my, 0px) + ${p * -120}px), 0) scale(${1 + p * 0.1})`,
+        opacity: 1 - p * 0.4,
+      };
 
   const meta: { k: string; v: React.ReactNode }[] = [
     { k: "EST.", v: "MMXXIV" },
-    { k: "Discipline", v: "Agentic systems" },
-    { k: "Coverage", v: "Global · 24/7" },
+    { k: "Focus", v: "Real estate · AI agents" },
+    { k: "Coverage", v: "US & worldwide · 24/7" },
     {
       k: "Status",
       v: (
@@ -63,7 +70,7 @@ export default function Hero() {
               boxShadow: "0 0 0 3px rgba(43,182,224,0.18)",
             }}
           />
-          Accepting briefs
+          Taking new projects
         </span>
       ),
     },
@@ -92,15 +99,16 @@ export default function Hero() {
 
       <div className="hero-tagline">
         <p className="lede reveal">
-          A studio building <b style={{ color: "var(--ink)" }}>autonomous agents</b>, end-to-end
-          automation and resilient cloud systems for teams who refuse the status quo.
+          We build <b style={{ color: "var(--ink)" }}>AI agents</b> and automation for real
+          estate investors and growing businesses — so every lead gets an answer, every deal
+          gets underwritten, and your numbers stay in view.
         </p>
       </div>
 
       <h1 className="display hero-headline">
-        <RL delay={1}>The infrastructure</RL>
+        <RL delay={1}>AI agents that</RL>
         <RL delay={2}>
-          of <em>intelligent</em> work.
+          work your <em>pipeline.</em>
         </RL>
       </h1>
 
@@ -117,18 +125,22 @@ export default function Hero() {
         <div className="marquee-track">
           {Array.from({ length: 2 }).map((_, i) => (
             <span key={i}>
-              Agent orchestration <i className="dot" />
-              Process automation <i className="dot" />
-              Data pipelines <i className="dot" />
-              Cloud &amp; hosting <i className="dot" />
-              Custom AI integrations <i className="dot" />
-              Web &amp; app development <i className="dot" />
-              Agent orchestration <i className="dot" />
-              Process automation <i className="dot" />
-              Data pipelines <i className="dot" />
-              Cloud &amp; hosting <i className="dot" />
-              Custom AI integrations <i className="dot" />
-              Web &amp; app development <i className="dot" />
+              Estate 360 agents <i className="dot" />
+              AI texting &amp; calling <i className="dot" />
+              Lead qualification <i className="dot" />
+              Comps &amp; underwriting <i className="dot" />
+              KPI dashboards <i className="dot" />
+              GoHighLevel &amp; n8n <i className="dot" />
+              Web apps &amp; portals <i className="dot" />
+              Managed hosting <i className="dot" />
+              Estate 360 agents <i className="dot" />
+              AI texting &amp; calling <i className="dot" />
+              Lead qualification <i className="dot" />
+              Comps &amp; underwriting <i className="dot" />
+              KPI dashboards <i className="dot" />
+              GoHighLevel &amp; n8n <i className="dot" />
+              Web apps &amp; portals <i className="dot" />
+              Managed hosting <i className="dot" />
             </span>
           ))}
         </div>

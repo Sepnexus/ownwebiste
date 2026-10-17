@@ -82,7 +82,7 @@ export default function PlansGrid({
             <li key={f}>{f}</li>
           ))}
         </ul>
-        <div className="cta">
+        <div className="plan-cta">
           <button
             type="button"
             className={p.highlight ? "btn btn-solid" : "btn btn-outline"}

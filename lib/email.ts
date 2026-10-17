@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { BUSINESS } from "@/lib/business";
 
 let _client: Resend | null = null;
 
@@ -150,7 +151,7 @@ export function emailLayout(args: { title: string; preheader?: string; bodyHtml:
               <td style="vertical-align:middle;">
                 <div style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:26px;letter-spacing:-0.01em;color:#14110f;line-height:1;">Sepnexus</div>
                 <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:#98928a;margin-top:6px;">
-                  Infrastructure of intelligent work
+                  AI agents &amp; automation
                 </div>
               </td>
             </tr>
@@ -163,8 +164,8 @@ export function emailLayout(args: { title: string; preheader?: string; bodyHtml:
           ${args.bodyHtml}
         </td></tr>
         <tr><td style="padding:16px 32px 28px;font-size:12px;line-height:1.5;color:#98928a;border-top:1px solid rgba(20,17,16,0.06);">
-          <strong style="color:#2a2520;">Sepnexus, Inc.</strong><br>
-          Agentic systems · Process automation · Managed cloud<br>
+          <strong style="color:#2a2520;">${BUSINESS.legalName}</strong><br>
+          AI agents · Automation · Managed hosting<br>
           <a href="${base}" style="color:#2a2520;text-decoration:none;border-bottom:1px solid rgba(20,17,16,0.2);">sepnexus.com</a> &nbsp;·&nbsp;
           <a href="mailto:akshay@sepnexus.com" style="color:#2a2520;text-decoration:none;border-bottom:1px solid rgba(20,17,16,0.2);">akshay@sepnexus.com</a>
           <br><br>

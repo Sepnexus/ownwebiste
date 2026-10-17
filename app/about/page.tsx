@@ -6,29 +6,29 @@ import CTA from "@/components/sections/CTA";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Sepnexus is a small studio of senior engineers, designers and AI researchers building autonomous systems for teams that refuse the status quo.",
+    "Sepnexus builds AI agents, automation and custom software for real estate investors and growing businesses. Based in Chandigarh, India, working with clients in the US and worldwide.",
 };
 
 const PRINCIPLES = [
   {
     n: "01",
     title: "Systems, not scripts.",
-    body: "We build durable systems with versioning, observability, rollbacks and SLAs — not one-shot prototypes that rot the moment the demo ends.",
+    body: "We build things that keep working after the demo: logged, monitored and easy to change. Not one-off scripts that break the first time a lead replies in a way nobody expected.",
   },
   {
     n: "02",
     title: "Operate what we ship.",
-    body: "If something we built is on fire at 3 a.m., we're already on it. We don't hand off to an in-house team that has never seen the code.",
+    body: "If something we built stops working, we're the ones who fix it. We don't hand over the code and disappear.",
   },
   {
     n: "03",
-    title: "Right-sized intelligence.",
-    body: "80% of work is deterministic — we automate it deterministically. Agents are reserved for the genuinely fuzzy 20% where reasoning earns its cost.",
+    title: "AI where it earns its keep.",
+    body: "Most work just needs a reliable workflow. We use AI where judgement matters — reading a seller's reply, qualifying a lead, estimating repairs — and plain automation everywhere else.",
   },
   {
     n: "04",
     title: "Plain language, plain pricing.",
-    body: "Subscriptions billed monthly or yearly, USD, no surprise overages. Custom builds quoted up front. No retainers that quietly creep.",
+    body: "Subscriptions billed monthly or yearly in USD. Custom builds quoted in writing before work starts. No retainers that quietly creep.",
   },
 ];
 
@@ -44,32 +44,36 @@ export default function AboutPage() {
             <br /> that keep modern businesses running.
           </h1>
           <p className="page-lede reveal">
-            Sepnexus is a studio of senior engineers, designers and AI researchers. We deploy
-            autonomous agents, automate the operations that drain your team, and run the cloud
-            those systems live on. We are small on purpose — most engagements are led by the
-            people writing the code.
+            Sepnexus builds AI agents, automation and custom software for real estate investors
+            and growing businesses. Most of our work is in real estate investing — lead
+            follow-up, AI calling, comping and KPI tracking — and the same tools work for any team
+            that wants more done without adding headcount. We&apos;re small on purpose: the
+            people who scope your project are the people who build it.
           </p>
 
           <div className="prose reveal">
             <h2>What we do, in plain language</h2>
             <p>
-              Most teams already know where they bleed: the inbox triage that swallows mornings,
-              the spreadsheet ritual that nobody trusts, the dashboard that doesn&apos;t reflect
-              reality. We build the things that close those loops and then we run them.
+              Most investors already know where deals leak: leads that wait hours for a reply,
+              follow-up that stops after the second text, offers worked out differently by every
+              rep, and numbers nobody trusts on Monday morning. We build the things that fix those
+              leaks, and then we keep them running.
             </p>
             <p>
-              Concretely, that means autonomous AI agents wired into your stack, deterministic
-              automation pipelines for the boring 80%, data infrastructure that surfaces decisions
-              instead of charts, and the cloud platform that hosts all of it under a contract your
-              CTO can sign.
+              In practice, that means Estate 360 agents that text and call sellers and book
+              appointments, follow-up automation in GoHighLevel and n8n, comping and underwriting
+              tools, KPI dashboards, partner and hiring portals, and the hosting all of it runs
+              on. Outside real estate, the same toolkit powers AI assistants, document automation
+              and integrations for other kinds of businesses.
             </p>
 
             <h2>How we work</h2>
             <p>
-              We embed for two weeks before we propose anything. We map the workflow, watch the
-              humans, and walk away with a blueprint that says exactly what gets built, what
-              doesn&apos;t, and what it costs. Then we ship — usually in two-week iterations,
-              demoed live — and we keep operating it after the launch.
+              We start with a call to map how leads, deals and data move through your business
+              today. Then we send a written plan: what gets built, what doesn&apos;t, what it costs
+              and how long it takes. We build in short steps you can see and try, connect
+              everything to the tools you already use, and keep it running after launch if you
+              want us to.
             </p>
             <p>
               We&apos;ll happily say no to projects that should be a SaaS subscription. The work
@@ -123,16 +127,16 @@ export default function AboutPage() {
           <div className="prose reveal" style={{ marginTop: 56 }}>
             <h2>Where we are</h2>
             <p>
-              Sepnexus operates remotely with a core team across the EU and Asia-Pacific. We take
-              a limited number of engagements at any one time so the people who scoped your work
-              are the people who do it.
+              Sepnexus OPC Pvt Ltd is registered in Chandigarh, India. We work remotely with real
+              estate investors across the US and with businesses worldwide, and we take a limited
+              number of projects at a time so the person who scoped your work is the one building
+              it.
             </p>
 
             <h2>Want to work with us?</h2>
             <p>
-              Engagements are invitation-based — start with the{" "}
-              <a href="/contact?type=request_access">access request form</a>. Tell us about the
-              loop you want closed and we&apos;ll come back within 48 hours.
+              Start with the <a href="/contact?type=project_inquiry">project form</a>. Tell us
+              what you want automated or built and we&apos;ll come back within 48 hours.
             </p>
           </div>
         </div>

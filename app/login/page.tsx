@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import LoginForm from "./_components/LoginForm";
+import AuthBrand from "./_components/AuthBrand";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -9,7 +10,8 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <main className="login-shell">
+    <main id="main" className="login-shell">
+      <AuthBrand />
       <div className="login-card">
         <h1>Welcome back.</h1>
         <p className="sub">Sign in with your Sepnexus account.</p>
@@ -39,7 +41,7 @@ export default function LoginPage() {
         >
           New to Sepnexus? Accounts are set up by our team —{" "}
           <a href="/contact?type=request_access" style={{ color: "var(--ink)" }}>
-            request access →
+            request access <span aria-hidden="true">→</span>
           </a>
         </p>
       </div>

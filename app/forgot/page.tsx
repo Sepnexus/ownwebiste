@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ForgotForm from "./_components/ForgotForm";
+import AuthBrand from "@/app/login/_components/AuthBrand";
 
 export const metadata: Metadata = { title: "Forgot password" };
 export const dynamic = "force-dynamic";
 
 export default function ForgotPage() {
   return (
-    <main className="login-shell">
+    <main id="main" className="login-shell">
+      <AuthBrand />
       <div className="login-card">
         <h1>Forgot password</h1>
         <p className="sub">
@@ -24,7 +26,7 @@ export default function ForgotPage() {
           }}
         >
           <Link href="/login" style={{ color: "var(--ink)" }}>
-            ← Back to sign in
+            <span aria-hidden="true">←</span> Back to sign in
           </Link>
         </p>
       </div>

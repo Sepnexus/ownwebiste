@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { db, schema } from "@/lib/db";
-import { desc, isNull, eq, and, sql } from "drizzle-orm";
+import { desc, isNull, eq, and, sql, inArray, notInArray } from "drizzle-orm";
 import { inviteCustomer, resendInvite, deleteCustomer } from "./_actions";
+import ConfirmDelete from "../_components/ConfirmDelete";
+import SubmitButton from "../_components/SubmitButton";
 
 export const metadata: Metadata = { title: "Admin · Customers" };
 export const dynamic = "force-dynamic";
@@ -43,6 +45,35 @@ export default async function CustomersPage({
   ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  // Live (non-terminal) subscriptions per customer on this page. "Remove" only
+  // soft-deletes the user; it doesn't cancel anything in Razorpay, so the
+  // confirm dialog warns when there's something still billing.
+  const liveSubRows =
+    customers.length === 0
+      ? []
+      : await db
+          .select({
+            userId: schema.subscriptions.userId,
+            n: sql<number>`count(*)::int`,
+          })
+          .from(schema.subscriptions)
+          .where(
+            and(
+              inArray(
+                schema.subscriptions.userId,
+                customers.map((c) => c.id),
+              ),
+              notInArray(schema.subscriptions.status, [
+                "cancelled",
+                "expired",
+                "completed",
+                "halted",
+              ]),
+            ),
+          )
+          .groupBy(schema.subscriptions.userId);
+  const liveSubs = new Map(liveSubRows.map((r) => [r.userId, r.n]));
+
   return (
     <>
       <h1>Customers</h1>
@@ -75,9 +106,9 @@ export default async function CustomersPage({
           </label>
         </div>
         <div className="actions">
-          <button type="submit" className="btn btn-solid">
+          <SubmitButton className="btn btn-solid" pendingLabel="Sending invite…">
             Send invite →
-          </button>
+          </SubmitButton>
           <span style={{ fontFamily: "var(--sans)", fontSize: 13, color: "var(--muted)" }}>
             Token expires in 7 days. They click the link, set a password, and they&apos;re in.
           </span>
@@ -95,6 +126,7 @@ export default async function CustomersPage({
           name="q"
           defaultValue={q}
           placeholder="Search by email or name…"
+          aria-label="Search customers by email or name"
           style={{
             flex: 1,
             minWidth: 240,
@@ -102,7 +134,6 @@ export default async function CustomersPage({
             border: "1px solid var(--line)",
             borderRadius: 10,
             fontFamily: "var(--sans)",
-            fontSize: 14,
             background: "rgba(255,255,255,0.6)",
           }}
         />
@@ -116,7 +147,9 @@ export default async function CustomersPage({
         )}
       </form>
       {customers.length === 0 ? (
-        <p style={{ color: "var(--muted)" }}>No customers yet.</p>
+        <p style={{ color: "var(--muted)" }}>
+          {q ? `No matches for “${q}”.` : "No customers yet."}
+        </p>
       ) : (
         <table className="admin-table">
           <thead>
@@ -135,6 +168,7 @@ export default async function CustomersPage({
                 : c.invitedAt
                   ? "invited"
                   : "pending";
+              const liveSubCount = liveSubs.get(c.id) ?? 0;
               return (
                 <tr key={c.id}>
                   <td>
@@ -167,30 +201,39 @@ export default async function CustomersPage({
                       {!c.inviteAcceptedAt && (
                         <form action={resendInvite}>
                           <input type="hidden" name="id" value={c.id} />
-                          <button
-                            type="submit"
+                          <SubmitButton
                             className="btn btn-outline"
                             style={{ padding: "6px 10px", fontSize: 12 }}
+                            pendingLabel="Sending…"
                           >
                             Resend invite
-                          </button>
+                          </SubmitButton>
                         </form>
                       )}
-                      <form action={deleteCustomer}>
-                        <input type="hidden" name="id" value={c.id} />
-                        <button
-                          type="submit"
-                          className="btn btn-outline"
-                          style={{
-                            padding: "6px 10px",
-                            fontSize: 12,
-                            color: "var(--c-red)",
-                            borderColor: "var(--c-red)",
-                          }}
-                        >
-                          Remove
-                        </button>
-                      </form>
+                      <ConfirmDelete
+                        action={deleteCustomer}
+                        fields={{ id: c.id }}
+                        triggerLabel="Remove"
+                        triggerStyle={{ padding: "6px 10px", fontSize: 12 }}
+                        title={`Remove customer “${c.name?.trim() || c.email}”?`}
+                        confirmLabel="Remove customer"
+                        pendingLabel="Removing…"
+                      >
+                        {c.email} will no longer be able to sign in, and they drop off this
+                        list. There&apos;s no undo for this in the admin.{" "}
+                        {liveSubCount > 0 ? (
+                          <>
+                            <strong>
+                              {liveSubCount === 1
+                                ? "Removing doesn’t cancel their live subscription."
+                                : `Removing doesn’t cancel their ${liveSubCount} live subscriptions.`}
+                            </strong>{" "}
+                            If billing should stop, cancel in Razorpay first.
+                          </>
+                        ) : (
+                          "They have no live subscriptions."
+                        )}
+                      </ConfirmDelete>
                     </div>
                   </td>
                 </tr>

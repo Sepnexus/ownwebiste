@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth";
 import { changePassword, updateProfile } from "./_actions";
 import TwoFactor from "./_components/TwoFactor";
+import SubmitButton from "../_components/SubmitButton";
 
 export const metadata: Metadata = { title: "Admin · Account" };
 export const dynamic = "force-dynamic";
@@ -34,9 +35,9 @@ export default async function AccountPage({
           <span className="help">Email is fixed for now. Reach out if you need to change it.</span>
         </label>
         <div className="actions">
-          <button type="submit" className="btn btn-solid">
+          <SubmitButton className="btn btn-solid" pendingLabel="Saving…">
             Save profile
-          </button>
+          </SubmitButton>
         </div>
       </form>
 
@@ -59,9 +60,9 @@ export default async function AccountPage({
           <input type="password" name="confirm" required minLength={8} autoComplete="new-password" />
         </label>
         <div className="actions">
-          <button type="submit" className="btn btn-solid">
+          <SubmitButton className="btn btn-solid" pendingLabel="Updating…">
             Update password
-          </button>
+          </SubmitButton>
         </div>
       </form>
     </>

@@ -1,7 +1,13 @@
+import { formatMoneyCents, formatPrice } from "@/lib/format";
+import { toMinorUnits } from "@/lib/currencies";
+
 type Props = {
   used: number;
   included: number;
+  /** Overage rate per 1,000 executions, in the plan currency's major unit. */
   overageUsdPer1k: number | null;
+  /** The plan's ISO currency, e.g. "USD", "INR", "EUR". */
+  currency: string;
   periodStart: Date;
   periodEnd: Date;
   lastEventAt: Date | null;
@@ -19,6 +25,7 @@ export default function UsagePanel({
   used,
   included,
   overageUsdPer1k,
+  currency,
   periodStart,
   periodEnd,
   lastEventAt,
@@ -27,9 +34,10 @@ export default function UsagePanel({
   const pct = hasLimit ? Math.min(used / included, 2) : 0;
   const widthPct = Math.min(100, pct * 100);
   const over = Math.max(0, used - included);
-  const projectedCents =
+  // Billed in whole 1,000-execution buckets, rounded up (see lib/usage.ts).
+  const projectedMajor =
     over > 0 && overageUsdPer1k != null
-      ? Math.ceil(over / 1_000) * overageUsdPer1k * 100
+      ? Math.ceil(over / 1_000) * overageUsdPer1k
       : 0;
   const isOver = over > 0;
   const at80 = hasLimit && used / included >= 0.8 && !isOver;
@@ -130,16 +138,16 @@ export default function UsagePanel({
           </span>
         )}
         {hasLimit && at80 && (
-          <span style={{ color: "var(--c-orange)" }}>
+          <span style={{ color: "var(--c-orange-ink)" }}>
             You're at {Math.round((used / included) * 100)}% of your allowance. Consider
             upgrading if you expect another big batch.
           </span>
         )}
         {isOver && overageUsdPer1k != null && (
-          <span style={{ color: "var(--c-red)" }}>
+          <span style={{ color: "var(--c-red-ink)" }}>
             Over by <strong>{over.toLocaleString()}</strong> · projected overage on next invoice:{" "}
-            <strong>${(projectedCents / 100).toFixed(2)}</strong> ($
-            {overageUsdPer1k} per 1,000)
+            <strong>{formatMoneyCents(toMinorUnits(projectedMajor, currency), currency)}</strong>{" "}
+            ({formatPrice(overageUsdPer1k, currency)} per 1,000)
           </span>
         )}
         {isOver && overageUsdPer1k == null && (

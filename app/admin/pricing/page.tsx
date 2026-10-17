@@ -1,24 +1,44 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { db, schema } from "@/lib/db";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { deletePlan, toggleVisibility } from "./_actions";
 import SyncRazorpay from "./_components/SyncRazorpay";
+import ConfirmDelete from "../_components/ConfirmDelete";
+import SubmitButton from "../_components/SubmitButton";
 import { currencySymbol } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Admin · Pricing" };
 export const dynamic = "force-dynamic";
 
-export default async function AdminPricingPage() {
-  const rows = await db
-    .select({
-      plan: schema.pricingPlans,
-      customForEmail: schema.users.email,
-    })
-    .from(schema.pricingPlans)
-    .leftJoin(schema.users, eq(schema.users.id, schema.pricingPlans.customForUserId))
-    .orderBy(asc(schema.pricingPlans.category), asc(schema.pricingPlans.sortOrder));
+export default async function AdminPricingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
+  const [rows, subCountRows] = await Promise.all([
+    db
+      .select({
+        plan: schema.pricingPlans,
+        customForEmail: schema.users.email,
+      })
+      .from(schema.pricingPlans)
+      .leftJoin(schema.users, eq(schema.users.id, schema.pricingPlans.customForUserId))
+      .orderBy(asc(schema.pricingPlans.category), asc(schema.pricingPlans.sortOrder)),
+    // Subscriptions of ANY status per plan. subscriptions.plan_id is
+    // ON DELETE RESTRICT, so a plan with even one (cancelled) sub can't be
+    // deleted — the confirm dialog says so up front.
+    db
+      .select({
+        planId: schema.subscriptions.planId,
+        n: sql<number>`count(*)::int`,
+      })
+      .from(schema.subscriptions)
+      .groupBy(schema.subscriptions.planId),
+  ]);
   const plans = rows.map((r) => ({ ...r.plan, customForEmail: r.customForEmail }));
+  const subCounts = new Map(subCountRows.map((r) => [r.planId, r.n]));
 
   return (
     <>
@@ -34,6 +54,11 @@ export default async function AdminPricingPage() {
           + New plan
         </Link>
       </div>
+      {error && (
+        <div className="form-error" role="alert" style={{ marginBottom: 20, maxWidth: 920 }}>
+          {error}
+        </div>
+      )}
       <div
         style={{
           padding: "10px 14px",
@@ -70,98 +95,132 @@ export default async function AdminPricingPage() {
             </tr>
           </thead>
           <tbody>
-            {plans.map((p) => (
-              <tr key={p.id}>
-                <td>
-                  <span className="pill">{p.category}</span>
-                </td>
-                <td>
-                  <Link
-                    href={`/admin/pricing/${p.id}`}
-                    style={{ color: "var(--ink)", textDecoration: "none" }}
-                  >
-                    <strong>{p.name}</strong>{" "}
-                    <span style={{ color: "var(--muted)", fontFamily: "var(--mono)", fontSize: 12 }}>
-                      {p.slug}
-                    </span>
-                  </Link>
-                  {p.highlight && (
-                    <span className="pill" style={{ marginLeft: 8, color: "var(--c-yellow)", borderColor: "var(--c-yellow)" }}>
-                      Featured
-                    </span>
-                  )}
-                  {p.customForUserId && (
-                    <span
-                      className="pill"
-                      style={{
-                        marginLeft: 8,
-                        color: "var(--c-magenta)",
-                        borderColor: "var(--c-magenta)",
-                      }}
-                      title={`Custom plan visible only to ${p.customForEmail ?? p.customForUserId}`}
-                    >
-                      Custom · {p.customForEmail?.split("@")[0] ?? "user"}
-                    </span>
-                  )}
-                </td>
-                <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>
-                  {currencySymbol(p.currency)}{p.priceMonthlyUsd.toLocaleString()} {p.currency}
-                </td>
-                <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>
-                  {currencySymbol(p.currency)}{p.priceYearlyUsd.toLocaleString()} {p.currency}
-                </td>
-                <td>
-                  {p.visible ? (
-                    <span className="pill live">Live</span>
-                  ) : (
-                    <span className="pill hidden">Hidden</span>
-                  )}
-                </td>
-                <td>
-                  {p.razorpayPlanIdMonthly && p.razorpayPlanIdYearly ? (
-                    <span className="pill live">Synced</span>
-                  ) : p.razorpayPlanIdMonthly || p.razorpayPlanIdYearly ? (
-                    <span className="pill draft">Partial</span>
-                  ) : (
-                    <span className="pill draft">Not synced</span>
-                  )}
-                </td>
-                <td>
-                  <div className="row-actions">
-                    <SyncRazorpay planId={p.id} />
-                    <form action={toggleVisibility}>
-                      <input type="hidden" name="id" value={p.id} />
-                      <button type="submit" className="btn btn-outline" style={{ padding: "6px 10px", fontSize: 12 }}>
-                        {p.visible ? "Hide" : "Show"}
-                      </button>
-                    </form>
+            {plans.map((p) => {
+              const subCount = subCounts.get(p.id) ?? 0;
+              return (
+                <tr key={p.id}>
+                  <td>
+                    <span className="pill">{p.category}</span>
+                  </td>
+                  <td>
                     <Link
                       href={`/admin/pricing/${p.id}`}
-                      className="btn btn-outline"
-                      style={{ padding: "6px 10px", fontSize: 12 }}
+                      style={{ color: "var(--ink)", textDecoration: "none" }}
                     >
-                      Edit
+                      <strong>{p.name}</strong>{" "}
+                      <span style={{ color: "var(--muted)", fontFamily: "var(--mono)", fontSize: 12 }}>
+                        {p.slug}
+                      </span>
                     </Link>
-                    <form action={deletePlan}>
-                      <input type="hidden" name="id" value={p.id} />
-                      <button
-                        type="submit"
-                        className="btn btn-outline"
+                    {p.highlight && (
+                      <span className="pill" style={{ marginLeft: 8, color: "var(--ink)", background: "var(--c-yellow)", borderColor: "var(--c-yellow)" }}>
+                        Featured
+                      </span>
+                    )}
+                    {p.customForUserId && (
+                      <span
+                        className="pill"
                         style={{
-                          padding: "6px 10px",
-                          fontSize: 12,
-                          color: "var(--c-red)",
-                          borderColor: "var(--c-red)",
+                          marginLeft: 8,
+                          color: "var(--c-magenta-ink)",
+                          borderColor: "var(--c-magenta)",
                         }}
-                        formNoValidate
+                        title={`Custom plan visible only to ${p.customForEmail ?? p.customForUserId}`}
                       >
-                        Delete
-                      </button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                        Custom · {p.customForEmail?.split("@")[0] ?? "user"}
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>
+                    {currencySymbol(p.currency)}{p.priceMonthlyUsd.toLocaleString()} {p.currency}
+                  </td>
+                  <td style={{ textAlign: "right", fontFamily: "var(--mono)" }}>
+                    {currencySymbol(p.currency)}{p.priceYearlyUsd.toLocaleString()} {p.currency}
+                  </td>
+                  <td>
+                    {p.visible ? (
+                      <span className="pill live">Live</span>
+                    ) : (
+                      <span className="pill hidden">Hidden</span>
+                    )}
+                  </td>
+                  <td>
+                    {p.razorpayPlanIdMonthly && p.razorpayPlanIdYearly ? (
+                      <span className="pill live">Synced</span>
+                    ) : p.razorpayPlanIdMonthly || p.razorpayPlanIdYearly ? (
+                      <span className="pill draft">Partial</span>
+                    ) : (
+                      <span className="pill draft">Not synced</span>
+                    )}
+                  </td>
+                  <td>
+                    <div className="row-actions">
+                      <SyncRazorpay planId={p.id} />
+                      <form action={toggleVisibility}>
+                        <input type="hidden" name="id" value={p.id} />
+                        <SubmitButton
+                          className="btn btn-outline"
+                          style={{ padding: "6px 10px", fontSize: 12 }}
+                          pendingLabel={p.visible ? "Hiding…" : "Showing…"}
+                        >
+                          {p.visible ? "Hide" : "Show"}
+                        </SubmitButton>
+                      </form>
+                      <Link
+                        href={`/admin/pricing/${p.id}`}
+                        className="btn btn-outline"
+                        style={{ padding: "6px 10px", fontSize: 12 }}
+                      >
+                        Edit
+                      </Link>
+                      {subCount > 0 ? (
+                        <ConfirmDelete
+                          blocked
+                          triggerLabel="Delete"
+                          triggerStyle={{ padding: "6px 10px", fontSize: 12 }}
+                          title={`Plan “${p.name}” can’t be deleted`}
+                        >
+                          {subCount === 1
+                            ? "1 subscription (counting cancelled and expired ones) still points"
+                            : `${subCount.toLocaleString()} subscriptions (counting cancelled and expired ones) still point`}{" "}
+                          at this plan, so the database won&apos;t remove it.{" "}
+                          {p.visible ? (
+                            <>
+                              Use <strong>Hide</strong> instead: new customers stop seeing it,
+                              and existing subscribers keep their subscription and billing
+                              unchanged.
+                            </>
+                          ) : (
+                            <>
+                              It&apos;s already hidden, so new customers can&apos;t pick it.
+                              Existing subscribers keep their subscription and billing
+                              unchanged.
+                            </>
+                          )}
+                        </ConfirmDelete>
+                      ) : (
+                        <ConfirmDelete
+                          action={deletePlan}
+                          fields={{ id: p.id }}
+                          triggerLabel="Delete"
+                          triggerStyle={{ padding: "6px 10px", fontSize: 12 }}
+                          title={`Delete plan “${p.name}”?`}
+                          confirmLabel="Delete plan"
+                        >
+                          No customer has ever subscribed to it, so no one is affected.
+                          {p.visible
+                            ? p.customForUserId
+                              ? " It disappears from the customer’s dashboard right away."
+                              : " It disappears from the public /pricing page right away."
+                            : ""}{" "}
+                          This can&apos;t be undone.
+                        </ConfirmDelete>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

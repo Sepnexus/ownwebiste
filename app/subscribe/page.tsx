@@ -42,7 +42,7 @@ export default async function SubscribePage({
   return (
     <>
       <Nav />
-      <main className="page">
+      <main id="main" className="page">
         <div className="page-narrow">
           <Link
             href="/pricing"
@@ -128,7 +128,7 @@ export default async function SubscribePage({
                   style={{
                     border: "1px solid var(--c-orange)",
                     background: "rgba(238,126,45,0.06)",
-                    color: "var(--c-orange)",
+                    color: "var(--c-orange-ink)",
                     padding: "16px 18px",
                     borderRadius: 14,
                     fontSize: 14,

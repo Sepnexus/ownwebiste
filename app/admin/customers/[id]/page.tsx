@@ -73,7 +73,7 @@ export default async function CustomerDetailPage({
           </span>
         )}
         {user.inviteAcceptedAt && (
-          <span style={{ color: "var(--c-cyan)" }}>
+          <span style={{ color: "var(--c-cyan-ink)" }}>
             {" "}· accepted {new Date(user.inviteAcceptedAt).toLocaleDateString()}
           </span>
         )}

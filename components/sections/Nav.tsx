@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -15,6 +15,7 @@ const NAV_LINKS: { label: string; href: string }[] = [
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -23,21 +24,45 @@ export default function Nav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // While the phone menu is open: lock page scroll, keep keyboard focus inside the
+  // header (the page behind is inert), and let Escape close it.
   useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
+    if (!open) return;
+    document.body.style.overflow = "hidden";
+    const behind = Array.from(document.querySelectorAll<HTMLElement>("#main, footer"));
+    behind.forEach((el) => (el.inert = true));
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      toggleRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = "";
+      behind.forEach((el) => (el.inert = false));
+      window.removeEventListener("keydown", onKey);
     };
   }, [open]);
 
+  // Close the menu if the window grows past the phone layout.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 961px)");
+    const onChange = () => mq.matches && setOpen(false);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
   return (
-    <nav className={`nav ${scrolled ? "scrolled" : ""} ${open ? "menu-open" : ""}`}>
+    <nav
+      aria-label="Main"
+      className={`nav ${scrolled ? "scrolled" : ""} ${open ? "menu-open" : ""}`}
+    >
       <Link href="/" className="nav-brand" onClick={() => setOpen(false)}>
         <Image src="/assets/sepnexus-mark.png" alt="" width={28} height={28} priority />
         <span className="word">Sepnexus</span>
       </Link>
 
-      <div className="nav-links" data-open={open}>
+      <div className="nav-links" id="site-menu" data-open={open}>
         {NAV_LINKS.map((l) => (
           <Link key={l.href} href={l.href} onClick={() => setOpen(false)}>
             {l.label}
@@ -78,8 +103,10 @@ export default function Nav() {
       <button
         type="button"
         className="nav-toggle"
+        ref={toggleRef}
         aria-label={open ? "Close menu" : "Open menu"}
         aria-expanded={open}
+        aria-controls="site-menu"
         onClick={() => setOpen((v) => !v)}
       >
         <span />

@@ -1,6 +1,38 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Instrument_Serif, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SiteChrome from "@/components/chrome/SiteChrome";
+
+// Self-hosted at build time: no render-blocking request to Google, and
+// metric-matched fallbacks so the big headline doesn't jump when fonts load.
+const serif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-serif",
+  display: "swap",
+});
+const sans = Geist({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-sans",
+  display: "swap",
+});
+const mono = Geist_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
+  themeColor: "#f6f3ec",
+  colorScheme: "light",
+};
 
 export const metadata: Metadata = {
   title: {
@@ -27,16 +59,15 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-scroll-behavior="smooth">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html
+      lang="en"
+      data-scroll-behavior="smooth"
+      className={`${serif.variable} ${sans.variable} ${mono.variable}`}
+    >
       <body>
+        <a href="#main" className="skip-link">
+          Skip to content
+        </a>
         <SiteChrome />
         {children}
       </body>

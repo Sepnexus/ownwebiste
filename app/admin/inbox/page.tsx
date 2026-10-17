@@ -82,6 +82,7 @@ export default async function AdminInboxPage({
           name="q"
           defaultValue={q}
           placeholder="Search name, email, or message…"
+          aria-label="Search submissions by name, email, or message"
           style={{
             flex: 1,
             minWidth: 240,
@@ -89,7 +90,6 @@ export default async function AdminInboxPage({
             border: "1px solid var(--line)",
             borderRadius: 10,
             fontFamily: "var(--sans)",
-            fontSize: 14,
             background: "rgba(255,255,255,0.6)",
           }}
         />
@@ -103,7 +103,7 @@ export default async function AdminInboxPage({
         )}
       </form>
       {recent.length === 0 ? (
-        <p style={{ color: "var(--muted)" }}>{q ? "No matches." : "No submissions yet."}</p>
+        <p style={{ color: "var(--muted)" }}>{q ? `No matches for “${q}”.` : "No submissions yet."}</p>
       ) : (
         <table className="admin-table">
           <thead>

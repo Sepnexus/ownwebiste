@@ -11,7 +11,7 @@ export default function SecurityPage() {
   return (
     <>
       <Nav />
-      <main className="page">
+      <main id="main" className="page">
         <div className="page-narrow prose">
           <span className="page-eyebrow">Legal — Security</span>
           <h1 className="page-title">Security.</h1>

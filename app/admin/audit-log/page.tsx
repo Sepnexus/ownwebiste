@@ -61,6 +61,7 @@ export default async function AuditLogPage({
           name="q"
           defaultValue={q}
           placeholder="Search action, actor email, target id…"
+          aria-label="Search audit log by action, actor email, or target id"
           style={{
             flex: 1,
             minWidth: 260,
@@ -68,7 +69,6 @@ export default async function AuditLogPage({
             border: "1px solid var(--line)",
             borderRadius: 10,
             fontFamily: "var(--sans)",
-            fontSize: 14,
             background: "rgba(255,255,255,0.6)",
           }}
         />
@@ -84,7 +84,7 @@ export default async function AuditLogPage({
 
       {rows.length === 0 ? (
         <p style={{ color: "var(--muted)" }}>
-          {q ? "No matches." : "No actions recorded yet."}
+          {q ? `No matches for “${q}”.` : "No actions recorded yet."}
         </p>
       ) : (
         <table className="admin-table">

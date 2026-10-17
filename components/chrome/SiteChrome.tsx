@@ -11,6 +11,8 @@ export default function SiteChrome() {
   const pathname = usePathname();
   const cursorRef = useRef<HTMLDivElement>(null);
   const sideRef = useRef<HTMLDivElement>(null);
+  // The drifting background glow is for the marketing site, not the dashboard or admin.
+  const showOrbs = !/^\/(dashboard|admin)(\/|$)/.test(pathname);
 
   // Bracket accent around the native cursor — desktop marketing pages only.
   // Positioned 1:1 on mousemove (no easing loop), so it never lags the pointer.
@@ -123,12 +125,14 @@ export default function SiteChrome() {
 
   return (
     <>
-      <div className="orbs" aria-hidden="true">
-        <div className="orb o1" />
-        <div className="orb o2" />
-        <div className="orb o3" />
-        <div className="orb o4" />
-      </div>
+      {showOrbs && (
+        <div className="orbs" aria-hidden="true">
+          <div className="orb o1" />
+          <div className="orb o2" />
+          <div className="orb o3" />
+          <div className="orb o4" />
+        </div>
+      )}
 
       <div className="syscursor" ref={cursorRef} data-mode="idle" aria-hidden="true">
         <svg viewBox="0 0 60 60" aria-hidden="true">
@@ -171,8 +175,8 @@ export default function SiteChrome() {
         </svg>
       </div>
 
-      <div className="side-progress" ref={sideRef} />
-      <div className="grain" />
+      <div className="side-progress" ref={sideRef} aria-hidden="true" />
+      <div className="grain" aria-hidden="true" />
     </>
   );
 }

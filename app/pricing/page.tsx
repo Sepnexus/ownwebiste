@@ -211,7 +211,7 @@ export default async function PricingPage() {
   return (
     <>
       <Nav />
-      <main className="page">
+      <main id="main" className="page">
         <div className="page-wide">
           <span className="page-eyebrow reveal">Pricing — USD &amp; INR</span>
           <h1 className="page-title reveal">

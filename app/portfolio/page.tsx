@@ -30,7 +30,7 @@ export default async function PortfolioPage() {
   return (
     <>
       <Nav />
-      <main className="page">
+      <main id="main" className="page">
         <div className="page-narrow">
           <span className="page-eyebrow reveal">Portfolio — Selected work</span>
           <h1 className="page-title reveal">

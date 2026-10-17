@@ -59,7 +59,7 @@ export default async function AdminLayout({
         </div>
       </aside>
 
-      <main className="admin-main">{children}</main>
+      <main id="main" className="admin-main">{children}</main>
     </div>
   );
 }

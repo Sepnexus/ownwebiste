@@ -93,7 +93,7 @@
   border-bottom: 1px solid var(--line-strong);
 }
 .prose a:hover {
-  color: var(--c-magenta);
+  color: var(--c-magenta-ink);
   border-color: currentColor;
 }
 
@@ -119,7 +119,11 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: color 0.18s ease, background 0.18s ease;
+  transition: color 0.18s ease, background 0.18s ease, transform 100ms var(--ease-out);
+}
+.pricing-toggle button:active { transform: scale(0.97); }
+@media (pointer: coarse) {
+  .pricing-toggle button { min-height: 44px; }
 }
 .pricing-toggle button[aria-pressed="true"] {
   background: var(--ink);
@@ -192,11 +196,13 @@
   flex-direction: column;
   gap: 16px;
   height: 100%;
-  transition: transform 0.3s var(--ease), border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.2s var(--ease-out), border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.pricing-card:hover {
-  border-color: var(--ink);
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .pricing-card:hover {
+    border-color: var(--ink);
+    transform: translateY(-2px);
+  }
 }
 .pricing-card.highlight {
   border-color: var(--ink);
@@ -355,6 +361,15 @@
   min-height: 140px;
   resize: vertical;
 }
+.contact-form [aria-invalid="true"],
+.admin-form [aria-invalid="true"] {
+  border-color: var(--c-red-ink);
+}
+.contact-form .btn { justify-content: center; }
+.contact-form input[readonly] {
+  color: var(--muted);
+  background: var(--bg-2);
+}
 .contact-form .check-row {
   display: flex;
   gap: 10px;
@@ -371,20 +386,20 @@
   width: 16px;
   height: 16px;
 }
-.contact-form .form-msg.error {
-  color: var(--c-red);
+.form-msg.error {
+  color: var(--c-red-ink);
   font-family: var(--mono);
   font-size: 13px;
 }
-.contact-form .form-msg.ok {
-  color: var(--c-cyan);
+.form-msg.ok {
+  color: var(--c-cyan-ink);
   font-family: var(--mono);
   font-size: 13px;
 }
 
 /* Login form */
 .login-shell {
-  min-height: 100vh;
+  min-height: 100svh;
   display: grid;
   place-items: center;
   padding: 120px var(--pad) 60px;
@@ -394,6 +409,7 @@
   width: 100%;
   max-width: 420px;
   background: rgba(255, 255, 255, 0.65);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -546,7 +562,7 @@
 .admin-shell {
   display: grid;
   grid-template-columns: 240px 1fr;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 .admin-side {
   background: rgba(255, 255, 255, 0.55);
@@ -557,7 +573,7 @@
   gap: 24px;
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: 100dvh;
   z-index: 10;
 }
 .admin-brand {
@@ -699,7 +715,7 @@
   gap: 6px;
   justify-content: flex-end;
 }
-.admin-table .pill {
+.pill {
   display: inline-block;
   font-family: var(--mono);
   font-size: 10px;
@@ -710,17 +726,17 @@
   border: 1px solid var(--line);
   color: var(--muted);
 }
-.admin-table .pill.live {
+.pill.live {
   border-color: var(--c-cyan);
-  color: var(--c-cyan);
+  color: var(--c-cyan-ink);
 }
-.admin-table .pill.draft {
+.pill.draft {
   border-color: var(--muted);
   color: var(--muted);
 }
-.admin-table .pill.hidden {
+.pill.hidden {
   border-color: var(--c-red);
-  color: var(--c-red);
+  color: var(--c-red-ink);
 }
 
 .admin-form {
@@ -751,7 +767,7 @@
 .admin-form select,
 .admin-form textarea {
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: 16px;
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -770,7 +786,7 @@
   resize: vertical;
   min-height: 120px;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 16px;
 }
 .admin-form .grid-2 {
   display: grid;
@@ -792,19 +808,19 @@
   color: var(--muted);
   margin-top: 4px;
 }
-.admin-form .form-error {
+.form-error {
   background: rgba(232, 74, 79, 0.08);
   border: 1px solid var(--c-red);
-  color: var(--c-red);
+  color: var(--c-red-ink);
   padding: 12px 14px;
   border-radius: 10px;
   font-size: 14px;
   font-family: var(--sans);
 }
-.admin-form .form-success {
+.form-success {
   background: rgba(43, 182, 224, 0.08);
   border: 1px solid var(--c-cyan);
-  color: var(--c-cyan);
+  color: var(--c-cyan-ink);
   padding: 12px 14px;
   border-radius: 10px;
   font-size: 14px;
@@ -825,8 +841,8 @@
 /* Mobile nav toggle (desktop hides it) */
 .nav-toggle {
   display: none;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   background: transparent;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -836,25 +852,27 @@
 }
 .nav-toggle span {
   position: absolute;
-  left: 8px;
-  right: 8px;
+  left: 13px;
+  right: 13px;
   height: 1.4px;
   background: var(--ink);
   transition: transform 0.25s var(--ease), opacity 0.18s ease, top 0.25s var(--ease);
 }
-.nav-toggle span:nth-child(1) { top: 12px; }
-.nav-toggle span:nth-child(2) { top: 19px; }
-.nav.menu-open .nav-toggle span:nth-child(1) { top: 16px; transform: rotate(45deg); }
-.nav.menu-open .nav-toggle span:nth-child(2) { top: 16px; transform: rotate(-45deg); }
+.nav-toggle span:nth-child(1) { top: 17px; }
+.nav-toggle span:nth-child(2) { top: 24px; }
+.nav.menu-open .nav-toggle span:nth-child(1) { top: 21px; transform: rotate(45deg); }
+.nav.menu-open .nav-toggle span:nth-child(2) { top: 21px; transform: rotate(-45deg); }
 
 .nav-mobile-actions { display: none; }
 
 @media (max-width: 960px) {
+  /* 10 + 44px toggle + 10 = a 64px bar; the menu sheet starts right under it */
+  .nav { padding-top: calc(10px + env(safe-area-inset-top, 0px)); padding-bottom: 10px; }
   .nav-toggle { display: block; }
   .nav-cta { display: none; }
   .nav-links {
     position: fixed;
-    inset: 64px 0 0 0;
+    inset: calc(64px + env(safe-area-inset-top, 0px)) 0 0 0;
     background: var(--bg);
     display: none !important;
     flex-direction: column;
@@ -864,6 +882,7 @@
   }
   .nav-links[data-open="true"] {
     display: flex !important;
+    animation: menuIn 0.2s var(--ease-out);
   }
   .nav-links a {
     font-size: 28px !important;
@@ -886,4 +905,51 @@
   }
   .nav-links .nav-mobile-actions .btn-solid { color: var(--bg); }
   .nav-links .nav-mobile-actions .btn-outline { color: var(--ink); }
+}
+
+@keyframes menuIn {
+  from { opacity: 0; transform: translateY(-8px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-links[data-open="true"] { animation: none; }
+}
+
+/* Skip link: hidden until a keyboard user tabs to it */
+.skip-link {
+  position: fixed;
+  left: 12px;
+  top: -64px;
+  z-index: 1000;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 500;
+  transition: top 0.15s ease;
+}
+.skip-link:focus { top: 12px; }
+
+/* Visible focus for keyboard users everywhere */
+:where(a, button, .btn, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+:where(input, select, textarea):focus-visible { outline-offset: 0; }
+
+/* Native <dialog> (admin delete confirmations) */
+dialog::backdrop { background: rgba(20, 17, 16, 0.4); }
+
+/* Disabled and pending buttons look it, not just change cursor */
+.btn:disabled { opacity: 0.6; }
+
+/* Visible to screen readers only */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

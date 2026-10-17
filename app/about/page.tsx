@@ -36,7 +36,7 @@ export default function AboutPage() {
   return (
     <>
       <Nav />
-      <main className="page">
+      <main id="main" className="page">
         <div className="page-narrow">
           <span className="page-eyebrow reveal">About — Sepnexus</span>
           <h1 className="page-title reveal">

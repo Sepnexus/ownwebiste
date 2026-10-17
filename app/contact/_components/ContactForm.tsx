@@ -13,15 +13,33 @@ const TYPES = [
 export default function ContactForm() {
   const searchParams = useSearchParams();
   const formRef = useRef<HTMLFormElement>(null);
+  const doneHeadingRef = useRef<HTMLHeadingElement>(null);
+  const prevDone = useRef(false);
   const [type, setType] = useState("contact");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  // After one send the form is re-mounted by "Send another". The page's
+  // reveal-on-scroll observer only runs once per route, so the new form
+  // must start already revealed or it stays invisible.
+  const [sentOnce, setSentOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const t = searchParams.get("type");
     if (t && TYPES.some((x) => x.value === t)) setType(t);
   }, [searchParams]);
+
+  // Keep keyboard / screen-reader users in place when the view swaps:
+  // success → focus the "Thank you" heading; "Send another" → first field.
+  useEffect(() => {
+    if (prevDone.current === done) return;
+    prevDone.current = done;
+    if (done) {
+      doneHeadingRef.current?.focus();
+    } else {
+      formRef.current?.querySelector<HTMLElement>("select, input, textarea")?.focus();
+    }
+  }, [done]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -56,6 +74,7 @@ export default function ContactForm() {
         return;
       }
       setDone(true);
+      setSentOnce(true);
       formEl.reset();
     } catch {
       setError("Network error. Please try again.");
@@ -77,6 +96,8 @@ export default function ContactForm() {
         }}
       >
         <h3
+          ref={doneHeadingRef}
+          tabIndex={-1}
           style={{
             fontFamily: "var(--serif)",
             fontStyle: "italic",
@@ -84,6 +105,7 @@ export default function ContactForm() {
             fontSize: 32,
             margin: "0 0 8px",
             color: "var(--ink)",
+            outline: "none",
           }}
         >
           Thank you.
@@ -104,7 +126,11 @@ export default function ContactForm() {
   }
 
   return (
-    <form ref={formRef} className="contact-form reveal" onSubmit={onSubmit}>
+    <form
+      ref={formRef}
+      className={sentOnce ? "contact-form reveal in" : "contact-form reveal"}
+      onSubmit={onSubmit}
+    >
       <label>
         I&apos;m here to
         <select
@@ -133,7 +159,14 @@ export default function ContactForm() {
         </label>
         <label>
           Email
-          <input name="email" type="email" required autoComplete="email" />
+          <input
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+          />
         </label>
       </div>
       <label>
@@ -156,11 +189,15 @@ export default function ContactForm() {
           share it with anyone else. (Required.)
         </span>
       </label>
-      {error && <p className="form-msg error">{error}</p>}
+      {error && (
+        <p className="form-msg error" role="alert">
+          {error}
+        </p>
+      )}
       <div>
         <button type="submit" className="btn btn-solid" disabled={submitting}>
           {submitting ? "Sending…" : "Send"}
-          <svg className="arrow" viewBox="0 0 14 14" fill="none">
+          <svg className="arrow" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <path
               d="M3 11L11 3M11 3H4M11 3V10"
               stroke="currentColor"

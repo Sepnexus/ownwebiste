@@ -3,15 +3,20 @@
 import { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useScrollProgress } from "@/lib/hooks/scroll";
+import { useScrollEffect, scrollProgress, prefersReducedMotion } from "@/lib/hooks/scroll";
 
 export default function CTA() {
   const ref = useRef<HTMLElement>(null);
-  const p = useScrollProgress(ref);
-  const angle = p * 360;
+  const markRef = useRef<HTMLImageElement>(null);
+  useScrollEffect(ref, scrollProgress, (p) => {
+    if (markRef.current && !prefersReducedMotion()) {
+      markRef.current.style.transform = `rotate(${p * 360}deg)`;
+    }
+  });
   return (
     <section className="cta" id="access" ref={ref}>
       <div
+        aria-hidden="true"
         className="wash"
         style={{
           width: 600,
@@ -23,6 +28,7 @@ export default function CTA() {
         }}
       />
       <div
+        aria-hidden="true"
         className="wash"
         style={{
           width: 700,
@@ -34,6 +40,7 @@ export default function CTA() {
         }}
       />
       <div
+        aria-hidden="true"
         className="wash"
         style={{
           width: 500,
@@ -48,16 +55,7 @@ export default function CTA() {
       <div style={{ position: "relative", zIndex: 2 }}>
         <span className="eyebrow reveal">06 — Engage</span>
         <div style={{ marginTop: 18, display: "flex", justifyContent: "center" }}>
-          <Image
-            src="/assets/sepnexus-mark.png"
-            alt=""
-            width={84}
-            height={84}
-            style={{
-              transform: `rotate(${angle}deg)`,
-              transition: "transform 0.1s linear",
-            }}
-          />
+          <Image ref={markRef} src="/assets/sepnexus-mark.png" alt="" width={84} height={84} />
         </div>
         <h2 className="reveal" style={{ marginTop: 24 }}>
           Let&apos;s build something

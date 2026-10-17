@@ -65,7 +65,7 @@ export default function MarkPaidButton({
         </button>
       )}
       {error && (
-        <span style={{ fontSize: 11, color: "var(--c-red)", fontFamily: "var(--mono)" }}>
+        <span style={{ fontSize: 11, color: "var(--c-red-ink)", fontFamily: "var(--mono)" }}>
           {error}
         </span>
       )}

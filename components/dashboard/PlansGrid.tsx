@@ -167,16 +167,16 @@ export default function PlansGrid({
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
 
       <div style={{ marginBottom: 24 }}>
-        <div className="pricing-toggle" role="tablist">
+        <div className="pricing-toggle" role="group" aria-label="Billing period">
           <button
-            role="tab"
+            type="button"
             aria-pressed={period === "monthly"}
             onClick={() => setPeriod("monthly")}
           >
             Monthly
           </button>
           <button
-            role="tab"
+            type="button"
             aria-pressed={period === "yearly"}
             onClick={() => setPeriod("yearly")}
           >
@@ -190,7 +190,7 @@ export default function PlansGrid({
           style={{
             background: "rgba(232, 74, 79, 0.08)",
             border: "1px solid var(--c-red)",
-            color: "var(--c-red)",
+            color: "var(--c-red-ink)",
             padding: "12px 16px",
             borderRadius: 12,
             marginBottom: 24,
@@ -223,7 +223,7 @@ export default function PlansGrid({
                 fontSize: 10,
                 letterSpacing: "0.16em",
                 textTransform: "uppercase",
-                color: "var(--c-magenta)",
+                color: "var(--c-magenta-ink)",
                 background: "rgba(177,73,153,0.12)",
                 padding: "3px 8px",
                 borderRadius: 999,

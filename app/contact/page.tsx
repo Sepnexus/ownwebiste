@@ -14,7 +14,7 @@ export default function ContactPage() {
   return (
     <>
       <Nav />
-      <main className="page">
+      <main id="main" className="page">
         <div className="page-narrow">
           <span className="page-eyebrow reveal">Contact — Get in touch</span>
           <h1 className="page-title reveal">

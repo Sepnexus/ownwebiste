@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type LineKind = "info" | "ok" | "warn" | "ip";
 type Line = { c: LineKind; t: string };
@@ -24,19 +24,38 @@ function Terminal() {
   );
 
   const [shown, setShown] = useState(0);
+  const termRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setShown(lines.length);
       return;
     }
-    const id = setInterval(() => {
-      setShown((n) => (n >= lines.length ? lines.length : n + 1));
-    }, 420);
-    return () => clearInterval(id);
+    const el = termRef.current;
+    if (!el) return;
+    let id = 0;
+    // Start typing only once the terminal is actually on screen.
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        io.disconnect();
+        id = window.setInterval(() => {
+          setShown((n) => {
+            if (n + 1 >= lines.length) window.clearInterval(id);
+            return Math.min(n + 1, lines.length);
+          });
+        }, 420);
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      window.clearInterval(id);
+    };
   }, [lines.length]);
 
   return (
-    <div className="terminal">
+    <div className="terminal" ref={termRef} role="img" aria-label="Example deployment log for an Estate 360 setup">
       <div className="terminal-bar">
         <span className="dot" style={{ background: "#ff5f57" }} />
         <span className="dot" style={{ background: "#febc2e" }} />

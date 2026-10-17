@@ -1,5 +1,6 @@
 import type { PricingPlan } from "@/lib/db/schema";
 import { currencyOptions } from "@/lib/currencies";
+import SubmitButton from "../../_components/SubmitButton";
 
 type Props = {
   plan?: PricingPlan;
@@ -249,9 +250,13 @@ export default function PlanForm({ plan, action, error, customForUserId, customF
       </label>
 
       <div className="actions">
-        <button type="submit" className="btn btn-solid">
+        {/* Saving also syncs to Razorpay, which can take a few seconds. */}
+        <SubmitButton
+          className="btn btn-solid"
+          pendingLabel={plan ? "Saving and syncing…" : "Creating and syncing…"}
+        >
           {plan ? "Save changes" : "Create plan"}
-        </button>
+        </SubmitButton>
         <a href="/admin/pricing" className="btn btn-outline">
           Cancel
         </a>

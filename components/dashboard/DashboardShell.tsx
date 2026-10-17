@@ -27,7 +27,7 @@ export default function DashboardShell({
           <DashboardSignOut />
         </div>
       </nav>
-      <main className="dash-main">{children}</main>
+      <main id="main" className="dash-main">{children}</main>
     </>
   );
 }

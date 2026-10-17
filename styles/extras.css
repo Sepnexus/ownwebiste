@@ -3,16 +3,19 @@
   position: fixed; inset: 0; z-index: -1; pointer-events: none;
   overflow: hidden;
 }
+/* Soft glows painted with gradients, not filter: blur() — a 120px blur on
+   moving layers is expensive on phones. */
 .orb {
   position: absolute; border-radius: 50%;
-  filter: blur(120px); opacity: 0.32;
+  background: radial-gradient(closest-side, var(--orb), transparent);
+  opacity: 0.32;
   mix-blend-mode: multiply;
   will-change: transform;
 }
-.orb.o1 { width: 620px; height: 620px; background: var(--c-magenta); top: -10%; left: -10%; animation: drift1 28s ease-in-out infinite; }
-.orb.o2 { width: 540px; height: 540px; background: var(--c-cyan); top: 30%; right: -12%; animation: drift2 34s ease-in-out infinite; }
-.orb.o3 { width: 480px; height: 480px; background: var(--c-yellow); bottom: -8%; left: 10%; animation: drift3 26s ease-in-out infinite; opacity: 0.28; }
-.orb.o4 { width: 380px; height: 380px; background: var(--c-orange); bottom: 30%; right: 30%; animation: drift4 38s ease-in-out infinite; opacity: 0.22; }
+.orb.o1 { --orb: var(--c-magenta); width: 860px; height: 860px; top: -22%; left: -18%; animation: drift1 28s ease-in-out infinite; }
+.orb.o2 { --orb: var(--c-cyan); width: 760px; height: 760px; top: 22%; right: -20%; animation: drift2 34s ease-in-out infinite; }
+.orb.o3 { --orb: var(--c-yellow); width: 680px; height: 680px; bottom: -18%; left: 4%; animation: drift3 26s ease-in-out infinite; opacity: 0.28; }
+.orb.o4 { --orb: var(--c-orange); width: 560px; height: 560px; bottom: 22%; right: 24%; animation: drift4 38s ease-in-out infinite; opacity: 0.22; }
 @keyframes drift1 { 50% { transform: translate(120px, 60px) scale(1.1); } }
 @keyframes drift2 { 50% { transform: translate(-100px, 80px) scale(1.15); } }
 @keyframes drift3 { 50% { transform: translate(80px, -70px) scale(1.1); } }
@@ -26,25 +29,12 @@
   pointer-events: none;
   mix-blend-mode: multiply;
 }
-.service-card:hover .flood { opacity: 0.18; }
-.service-card:hover h3,
-.service-card:hover .num { transition: color 0.4s var(--ease); }
+@media (hover: hover) and (pointer: fine) {
+  .service-card:hover .flood { opacity: 0.18; }
+}
 
 /* ============== Animated counters ============== */
 .stat .num.counting { font-variant-numeric: tabular-nums; }
-
-/* ============== Headline gradient that flows ============== */
-.hero-headline em {
-  background-size: 200% 100%;
-  animation: gradientFlow 8s linear infinite;
-}
-.cta h2 em, .section-title em.serif-italic {
-  background-size: 200% 100%;
-  animation: gradientFlow 10s linear infinite;
-}
-@keyframes gradientFlow {
-  to { background-position: 200% 0; }
-}
 
 /* ============== Hero refinements ============== */
 .hero-orbits {
@@ -149,11 +139,9 @@
   h1.display { font-size: 56px; }
   h2.section-title { font-size: 40px; }
   .hero-tagline { margin-left: 0; margin-bottom: 32px; }
-  .hero-mark-wrap, .hero-orbits { right: -30%; top: 6%; opacity: 0.6; }
   .services-head { grid-template-columns: 1fr; gap: 28px; margin-bottom: 48px; }
   .hero-meta b span svg { display:none; }
   .nav-cta .btn-ghost { display: none; }
-  .nav { padding: 14px var(--pad); }
   .marquee { margin-top: 56px; }
 }
 
@@ -168,9 +156,6 @@
   .hero-orbits .satellite,
   .marquee-track,
   .service-glyph svg,
-  .hero-headline em,
-  .cta h2 em,
-  .section-title em.serif-italic,
   .hero-scroll-cue .line,
   .nav-chip .live,
   .cursor {

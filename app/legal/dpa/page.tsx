@@ -11,7 +11,7 @@ export default function DpaPage() {
   return (
     <>
       <Nav />
-      <main className="page">
+      <main id="main" className="page">
         <div className="page-narrow prose">
           <span className="page-eyebrow">Legal — Data Processing</span>
           <h1 className="page-title">Data processing agreement.</h1>

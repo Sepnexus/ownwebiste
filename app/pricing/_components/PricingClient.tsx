@@ -69,16 +69,16 @@ export default function PricingClient({ plans }: { plans: PricingPlan[] }) {
   return (
     <>
       <div className="reveal" style={{ display: "flex", justifyContent: "flex-start" }}>
-        <div className="pricing-toggle" role="tablist">
+        <div className="pricing-toggle" role="group" aria-label="Billing period">
           <button
-            role="tab"
+            type="button"
             aria-pressed={period === "monthly"}
             onClick={() => setPeriod("monthly")}
           >
             Monthly
           </button>
           <button
-            role="tab"
+            type="button"
             aria-pressed={period === "yearly"}
             onClick={() => setPeriod("yearly")}
           >

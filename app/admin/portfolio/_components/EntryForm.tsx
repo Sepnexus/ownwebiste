@@ -1,4 +1,5 @@
 import type { PortfolioEntry } from "@/lib/db/schema";
+import SubmitButton from "../../_components/SubmitButton";
 
 type Metric = { label: string; value: string };
 
@@ -71,7 +72,7 @@ export default function EntryForm({ entry, action, error }: Props) {
           rows={3}
           defaultValue={entry?.summary ?? ""}
           placeholder="One-paragraph executive summary."
-          style={{ fontFamily: "var(--sans)", fontSize: 14 }}
+          style={{ fontFamily: "var(--sans)" }}
         />
       </label>
 
@@ -82,7 +83,7 @@ export default function EntryForm({ entry, action, error }: Props) {
           rows={12}
           defaultValue={entry?.body ?? ""}
           placeholder="Detailed write-up. Optional."
-          style={{ fontFamily: "var(--sans)", fontSize: 14 }}
+          style={{ fontFamily: "var(--sans)" }}
         />
       </label>
 
@@ -134,9 +135,9 @@ export default function EntryForm({ entry, action, error }: Props) {
       </label>
 
       <div className="actions">
-        <button type="submit" className="btn btn-solid">
+        <SubmitButton className="btn btn-solid" pendingLabel={entry ? "Saving…" : "Creating…"}>
           {entry ? "Save changes" : "Create entry"}
-        </button>
+        </SubmitButton>
         <a href="/admin/portfolio" className="btn btn-outline">
           Cancel
         </a>

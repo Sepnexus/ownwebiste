@@ -3,6 +3,8 @@ import Link from "next/link";
 import { db, schema } from "@/lib/db";
 import { asc } from "drizzle-orm";
 import { deleteEntry, togglePublished } from "./_actions";
+import ConfirmDelete from "../_components/ConfirmDelete";
+import SubmitButton from "../_components/SubmitButton";
 
 export const metadata: Metadata = { title: "Admin · Portfolio" };
 export const dynamic = "force-dynamic";
@@ -69,9 +71,13 @@ export default async function AdminPortfolioPage() {
                   <div className="row-actions">
                     <form action={togglePublished}>
                       <input type="hidden" name="id" value={e.id} />
-                      <button type="submit" className="btn btn-outline" style={{ padding: "6px 10px", fontSize: 12 }}>
+                      <SubmitButton
+                        className="btn btn-outline"
+                        style={{ padding: "6px 10px", fontSize: 12 }}
+                        pendingLabel={e.published ? "Unpublishing…" : "Publishing…"}
+                      >
                         {e.published ? "Unpublish" : "Publish"}
-                      </button>
+                      </SubmitButton>
                     </form>
                     <Link
                       href={`/admin/portfolio/${e.id}`}
@@ -80,21 +86,24 @@ export default async function AdminPortfolioPage() {
                     >
                       Edit
                     </Link>
-                    <form action={deleteEntry}>
-                      <input type="hidden" name="id" value={e.id} />
-                      <button
-                        type="submit"
-                        className="btn btn-outline"
-                        style={{
-                          padding: "6px 10px",
-                          fontSize: 12,
-                          color: "var(--c-red)",
-                          borderColor: "var(--c-red)",
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </form>
+                    <ConfirmDelete
+                      action={deleteEntry}
+                      fields={{ id: e.id }}
+                      triggerLabel="Delete"
+                      triggerStyle={{ padding: "6px 10px", fontSize: 12 }}
+                      title={`Delete case study “${e.title}”?`}
+                      confirmLabel="Delete entry"
+                    >
+                      This permanently removes the entry
+                      {e.published ? " and takes it off the public /portfolio page right away" : ""}.
+                      It can&apos;t be undone.
+                      {e.published ? (
+                        <>
+                          {" "}
+                          To hide it but keep the write-up, use <strong>Unpublish</strong> instead.
+                        </>
+                      ) : null}
+                    </ConfirmDelete>
                   </div>
                 </td>
               </tr>

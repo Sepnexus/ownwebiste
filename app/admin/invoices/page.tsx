@@ -216,6 +216,7 @@ export default async function AdminInvoicesPage({
           name="q"
           defaultValue={q}
           placeholder="Search by customer email, name, or Razorpay invoice id…"
+          aria-label="Search invoices by customer email, name, or Razorpay invoice id"
           style={{
             flex: 1,
             minWidth: 260,
@@ -223,19 +224,18 @@ export default async function AdminInvoicesPage({
             border: "1px solid var(--line)",
             borderRadius: 10,
             fontFamily: "var(--sans)",
-            fontSize: 14,
             background: "rgba(255,255,255,0.6)",
           }}
         />
         <select
           name="status"
           defaultValue={status}
+          aria-label="Filter by status"
           style={{
             padding: "10px 14px",
             border: "1px solid var(--line)",
             borderRadius: 10,
             fontFamily: "var(--sans)",
-            fontSize: 14,
             background: "rgba(255,255,255,0.6)",
           }}
         >

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
+import SubmitButton from "../../_components/SubmitButton";
 
 export const metadata: Metadata = {
   title: "Admin · Contact",
@@ -129,15 +130,15 @@ export default async function ContactDetailPage({
         </a>
         {c.handledAt ? (
           <form action={reopen}>
-            <button type="submit" className="btn btn-outline">
+            <SubmitButton className="btn btn-outline" pendingLabel="Reopening…">
               Reopen
-            </button>
+            </SubmitButton>
           </form>
         ) : (
           <form action={markHandled}>
-            <button type="submit" className="btn btn-outline">
+            <SubmitButton className="btn btn-outline" pendingLabel="Saving…">
               Mark as handled
-            </button>
+            </SubmitButton>
           </form>
         )}
       </div>

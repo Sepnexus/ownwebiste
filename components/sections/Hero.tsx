@@ -1,23 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import Image from "next/image";
-import { useScrollProgress, RL } from "@/lib/hooks/scroll";
+import { useScrollEffect, scrollProgress, prefersReducedMotion, RL } from "@/lib/hooks/scroll";
 
 export default function Hero() {
   const ref = useRef<HTMLElement>(null);
   const markRef = useRef<HTMLDivElement>(null);
-  const p = useScrollProgress(ref);
-  const [still, setStill] = useState(false);
+
+  // Scroll parallax on the mark, written straight to the element (no re-render).
+  useScrollEffect(ref, scrollProgress, (p) => {
+    const el = markRef.current;
+    if (!el || prefersReducedMotion()) return;
+    el.style.transform = `translate3d(calc(var(--mx, 0px) + ${p * 80}px), calc(var(--my, 0px) + ${p * -120}px), 0) scale(${1 + p * 0.1})`;
+    el.style.opacity = String(1 - p * 0.4);
+  });
 
   useEffect(() => {
     const el = markRef.current;
     if (!el) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setStill(true);
-      return;
-    }
-    if (window.matchMedia("(pointer: coarse)").matches) return;
+    if (prefersReducedMotion() || window.matchMedia("(pointer: coarse)").matches) return;
     let tx = 0,
       ty = 0,
       cx = 0,
@@ -43,13 +45,6 @@ export default function Hero() {
       cancelAnimationFrame(raf);
     };
   }, []);
-
-  const markStyle: React.CSSProperties | undefined = still
-    ? undefined
-    : {
-        transform: `translate3d(calc(var(--mx, 0px) + ${p * 80}px), calc(var(--my, 0px) + ${p * -120}px), 0) scale(${1 + p * 0.1})`,
-        opacity: 1 - p * 0.4,
-      };
 
   const meta: { k: string; v: React.ReactNode }[] = [
     { k: "EST.", v: "MMXXIV" },
@@ -78,7 +73,7 @@ export default function Hero() {
 
   return (
     <section className="hero" id="top" ref={ref}>
-      <div className="hero-orbits">
+      <div className="hero-orbits" aria-hidden="true">
         <svg viewBox="0 0 100 100">
           <circle className="ring" cx="50" cy="50" r="46" />
           <circle className="ring r2" cx="50" cy="50" r="36" />
@@ -93,9 +88,17 @@ export default function Hero() {
           </g>
         </svg>
       </div>
-      <div className="hero-mark-wrap" ref={markRef} style={markStyle}>
+      <div className="hero-mark-wrap" ref={markRef} aria-hidden="true">
         <Image src="/assets/sepnexus-mark.png" alt="" width={240} height={240} priority />
       </div>
+
+      {/* Headline first in reading order; CSS lifts the tagline above it on wide screens */}
+      <h1 className="display hero-headline">
+        <RL delay={1}>AI agents that</RL>
+        <RL delay={2}>
+          work your <em>pipeline.</em>
+        </RL>
+      </h1>
 
       <div className="hero-tagline">
         <p className="lede reveal">
@@ -104,13 +107,6 @@ export default function Hero() {
           gets underwritten, and your numbers stay in view.
         </p>
       </div>
-
-      <h1 className="display hero-headline">
-        <RL delay={1}>AI agents that</RL>
-        <RL delay={2}>
-          work your <em>pipeline.</em>
-        </RL>
-      </h1>
 
       <div className="hero-meta reveal">
         {meta.map((m, i) => (
@@ -121,7 +117,7 @@ export default function Hero() {
         ))}
       </div>
 
-      <div className="marquee reveal">
+      <div className="marquee reveal" aria-hidden="true">
         <div className="marquee-track">
           {Array.from({ length: 2 }).map((_, i) => (
             <span key={i}>
@@ -146,7 +142,7 @@ export default function Hero() {
         </div>
       </div>
 
-      <div className="hero-scroll-cue">
+      <div className="hero-scroll-cue" aria-hidden="true">
         <span>Scroll</span>
         <span className="line" />
       </div>

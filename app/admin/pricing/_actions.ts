@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
@@ -250,6 +250,19 @@ export async function deletePlan(formData: FormData) {
   const admin = await requireAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
+  // subscriptions.plan_id is ON DELETE RESTRICT, so Postgres refuses to drop a
+  // plan any subscription (even a cancelled one) points at. Check first and
+  // explain, instead of letting the FK error surface as a server error.
+  const [{ subCount }] = await db
+    .select({ subCount: sql<number>`count(*)::int` })
+    .from(schema.subscriptions)
+    .where(eq(schema.subscriptions.planId, id));
+  if (subCount > 0) {
+    bail(
+      "/admin/pricing",
+      `That plan has ${subCount} subscription${subCount === 1 ? "" : "s"} on record, so it can't be deleted. Hide it instead.`,
+    );
+  }
   await db.delete(schema.pricingPlans).where(eq(schema.pricingPlans.id, id));
   void audit({
     actor: { userId: admin.id, email: admin.email },

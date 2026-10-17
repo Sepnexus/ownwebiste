@@ -234,7 +234,10 @@ export default function ManualInvoiceForm() {
             <th style={{ width: 90 }}>Qty</th>
             <th style={{ width: 150 }}>Unit price ({sym})</th>
             <th style={{ width: 130, textAlign: "right" }}>Amount</th>
-            <th style={{ width: 50 }} />
+            <th style={{ width: 56 }}>
+              {/* Visually hidden header so the column isn't announced as blank. */}
+              <span style={visuallyHidden}>Remove</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -248,6 +251,7 @@ export default function ManualInvoiceForm() {
                     value={it.description}
                     onChange={(e) => setItem(i, { description: e.target.value })}
                     placeholder="Consulting — discovery phase"
+                    aria-label={`Description, line ${i + 1}`}
                     style={inputStyle}
                   />
                 </td>
@@ -256,8 +260,10 @@ export default function ManualInvoiceForm() {
                     type="number"
                     min={0}
                     step="any"
+                    inputMode="decimal"
                     value={it.quantity}
                     onChange={(e) => setItem(i, { quantity: e.target.value })}
+                    aria-label={`Quantity, line ${i + 1}`}
                     style={inputStyle}
                   />
                 </td>
@@ -266,9 +272,11 @@ export default function ManualInvoiceForm() {
                     type="number"
                     min={0}
                     step="any"
+                    inputMode="decimal"
                     value={it.unitAmount}
                     onChange={(e) => setItem(i, { unitAmount: e.target.value })}
                     placeholder="0.00"
+                    aria-label={`Unit price (${currency}), line ${i + 1}`}
                     style={inputStyle}
                   />
                 </td>
@@ -290,17 +298,25 @@ export default function ManualInvoiceForm() {
                     type="button"
                     onClick={() => removeItem(i)}
                     disabled={items.length === 1}
-                    title="Remove line"
+                    aria-label={`Remove line ${i + 1}`}
+                    title={items.length === 1 ? "An invoice needs at least one line" : "Remove line"}
                     style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minWidth: 32,
+                      minHeight: 32,
+                      padding: 0,
                       border: "none",
+                      borderRadius: 8,
                       background: "none",
                       cursor: items.length === 1 ? "not-allowed" : "pointer",
                       color: items.length === 1 ? "var(--line-strong)" : "var(--c-red)",
-                      fontSize: 18,
+                      fontSize: 20,
                       lineHeight: 1,
                     }}
                   >
-                    ×
+                    <span aria-hidden="true">×</span>
                   </button>
                 </td>
               </tr>
@@ -388,6 +404,14 @@ const inputStyle: React.CSSProperties = {
   border: "1px solid var(--line)",
   borderRadius: 8,
   fontFamily: "var(--sans)",
-  fontSize: 13,
   background: "rgba(255,255,255,0.7)",
+};
+
+const visuallyHidden: React.CSSProperties = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  overflow: "hidden",
+  clip: "rect(0 0 0 0)",
+  whiteSpace: "nowrap",
 };

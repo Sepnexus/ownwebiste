@@ -11,7 +11,7 @@ export default function PrivacyPage() {
   return (
     <>
       <Nav />
-      <main className="page">
+      <main id="main" className="page">
         <div className="page-narrow prose">
           <span className="page-eyebrow">Legal — Privacy</span>
           <h1 className="page-title">Privacy.</h1>

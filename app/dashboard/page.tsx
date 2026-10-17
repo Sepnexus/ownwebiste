@@ -82,6 +82,14 @@ export default async function DashboardPage({
   }
 
   const hasAnyLive = liveSubs.length > 0;
+  // Subs still waiting on Razorpay to confirm the first payment. After
+  // checkout (?subscribed=1) their cards poll the sync endpoint briefly.
+  const anyAwaitingPayment = liveSubs.some((s) =>
+    ["created", "pending"].includes(s.sub.status),
+  );
+  const justSubscribed = subscribed === "1";
+  const firstName =
+    user.name?.trim().split(/\s+/)[0] || user.email.split("@")[0];
   const activePlanIds = new Set(
     liveSubs.map((s) => s.plan?.id).filter(Boolean) as string[],
   );
@@ -114,7 +122,7 @@ export default async function DashboardPage({
       <h1>
         Welcome back,
         <br />
-        <em>{user.name?.split(" ")[0] ?? user.email.split("@")[0]}.</em>
+        <em>{firstName}.</em>
       </h1>
       <p className="lede-row">
         {hasAnyLive
@@ -122,12 +130,13 @@ export default async function DashboardPage({
           : "Choose a plan to get started. You'll authorize the first payment with Razorpay."}
       </p>
 
-      {subscribed === "1" && (
+      {justSubscribed && (
         <div
+          role="status"
           style={{
             background: "rgba(43,182,224,0.1)",
             border: "1px solid var(--c-cyan)",
-            color: "var(--c-cyan)",
+            color: "var(--c-cyan-ink)",
             padding: "12px 16px",
             borderRadius: 12,
             marginBottom: 24,
@@ -135,8 +144,16 @@ export default async function DashboardPage({
             maxWidth: 720,
           }}
         >
-          Payment authorised — your new subscription will activate within a minute.
-          This page refreshes automatically once the webhook lands.
+          {anyAwaitingPayment ? (
+            <>
+              Payment authorised — your new subscription usually activates within a
+              minute. For the next minute this page checks with Razorpay every few
+              seconds and updates on its own. If it still says pending after that,
+              click <em>Refresh status</em>.
+            </>
+          ) : (
+            <>Payment authorised — thank you. Your subscriptions are listed below.</>
+          )}
         </div>
       )}
 
@@ -163,7 +180,7 @@ export default async function DashboardPage({
                 fontSize: 10,
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
-                color: "var(--c-magenta)",
+                color: "var(--c-magenta-ink)",
                 marginBottom: 4,
               }}
             >
@@ -197,7 +214,12 @@ export default async function DashboardPage({
           <div style={{ display: "grid", gap: 24 }}>
             {liveSubs.map(({ sub, plan }) =>
               plan ? (
-                <SubCard key={sub.id} sub={sub} plan={plan} />
+                <SubCard
+                  key={sub.id}
+                  sub={sub}
+                  plan={plan}
+                  autoRefresh={justSubscribed}
+                />
               ) : null,
             )}
           </div>
@@ -238,9 +260,12 @@ export default async function DashboardPage({
 async function SubCard({
   sub,
   plan,
+  autoRefresh,
 }: {
   sub: typeof schema.subscriptions.$inferSelect;
   plan: typeof schema.pricingPlans.$inferSelect;
+  /** Poll Razorpay for a status change (only acts while created/pending). */
+  autoRefresh: boolean;
 }) {
   const counter = await getCurrentUsageForSubscription(sub.id);
   return (
@@ -258,6 +283,7 @@ async function SubCard({
             used={counter.executionsUsed}
             included={counter.executionsIncluded}
             overageUsdPer1k={counter.overageUsdPer1k}
+            currency={plan.currency}
             periodStart={counter.periodStart}
             periodEnd={counter.periodEnd}
             lastEventAt={counter.lastEventAt}
@@ -287,6 +313,7 @@ async function SubCard({
             : null
         }
         cancelAtPeriodEnd={sub.cancelAtPeriodEnd}
+        autoRefresh={autoRefresh}
       />
     </div>
   );

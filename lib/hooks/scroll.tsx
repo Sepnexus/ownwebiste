@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 const _bus = { listeners: new Set<() => void>(), queued: false };
 function _flush() {
@@ -46,51 +46,53 @@ export function useReveal(rootRef: React.RefObject<HTMLElement | null>) {
   }, [rootRef]);
 }
 
-export function useScrollProgress(ref: React.RefObject<HTMLElement | null>): number {
-  const [p, setP] = useState(0);
-  const last = useRef(-1);
+/** 0 → 1 as the element travels from entering the bottom of the viewport to leaving the top. */
+export function scrollProgress(rect: DOMRect, vh: number): number {
+  return Math.max(0, Math.min(1, (vh - rect.top) / (rect.height + vh)));
+}
+
+/** 0 → 1 while a tall container scrolls past a sticky (pinned) child. */
+export function pinProgress(rect: DOMRect, vh: number): number {
+  const scrollable = rect.height - vh;
+  if (scrollable <= 0) return rect.top < 0 ? 1 : 0;
+  return Math.max(0, Math.min(1, -rect.top / scrollable));
+}
+
+/**
+ * Calls `onProgress` once per animation frame while scrolling, whenever the
+ * (quantised) progress changes. It does not use React state: callers write
+ * styles through refs, so scrolling never re-renders the component tree.
+ */
+export function useScrollEffect(
+  ref: React.RefObject<HTMLElement | null>,
+  measure: (rect: DOMRect, vh: number) => number,
+  onProgress: (p: number) => void,
+) {
+  const cb = useRef(onProgress);
+  const measureRef = useRef(measure);
+  useEffect(() => {
+    cb.current = onProgress;
+    measureRef.current = measure;
+  });
   useEffect(() => {
     if (!ref.current) return;
+    let last = -1;
     return subscribeScroll(() => {
       const el = ref.current;
       if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const vh = window.innerHeight;
-      const total = rect.height + vh;
-      const traveled = vh - rect.top;
-      const v = Math.max(0, Math.min(1, traveled / total));
+      const v = measureRef.current(el.getBoundingClientRect(), window.innerHeight);
       const q = Math.round(v * 250) / 250;
-      if (q !== last.current) {
-        last.current = q;
-        setP(q);
+      if (q !== last) {
+        last = q;
+        cb.current(q);
       }
     });
   }, [ref]);
-  return p;
 }
 
-export function usePinProgress(containerRef: React.RefObject<HTMLElement | null>): number {
-  const [p, setP] = useState(0);
-  const last = useRef(-1);
-  useEffect(() => {
-    if (!containerRef.current) return;
-    return subscribeScroll(() => {
-      const el = containerRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const vh = window.innerHeight;
-      const scrollable = rect.height - vh;
-      let v: number;
-      if (scrollable <= 0) v = rect.top < 0 ? 1 : 0;
-      else v = Math.max(0, Math.min(1, -rect.top / scrollable));
-      const q = Math.round(v * 250) / 250;
-      if (q !== last.current) {
-        last.current = q;
-        setP(q);
-      }
-    });
-  }, [containerRef]);
-  return p;
+/** True when the visitor asked their OS for reduced motion. Safe to call in effects/handlers only. */
+export function prefersReducedMotion(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 export const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);

@@ -1,7 +1,7 @@
 /* ============== Hero ============== */
 .hero {
   position: relative;
-  min-height: 100vh;
+  min-height: 100svh;
   padding: 0 var(--pad);
   display: flex; flex-direction: column; justify-content: flex-end;
   padding-top: 140px; padding-bottom: 64px;
@@ -16,6 +16,14 @@
   color: var(--muted); text-transform: uppercase;
 }
 .hero-meta b { color: var(--ink); font-weight: 500; }
+.hero-meta, .hero-headline { position: relative; z-index: 1; }
+/* Wide screens: tagline sits above the headline on the right (it follows it in the
+   markup so phones and screen readers get the headline first), and the meta row
+   stops short of the mark so it never runs under the ribbons. */
+@media (min-width: 961px) {
+  .hero-tagline { order: -1; }
+  .hero-meta { max-width: 62%; }
+}
 
 .hero-headline {
   display: block;
@@ -53,6 +61,9 @@
   margin-left: auto;
   margin-bottom: 48px;
 }
+@media (max-width: 960px) {
+  .hero-tagline { margin: 28px 0 0; }
+}
 
 .hero-scroll-cue {
   position: absolute;
@@ -83,6 +94,10 @@
   display: flex; gap: 60px;
   animation: marquee 38s linear infinite;
   white-space: nowrap;
+}
+.marquee:hover .marquee-track,
+.marquee:focus-within .marquee-track {
+  animation-play-state: paused;
   font-family: var(--mono); font-size: 12px; letter-spacing: 0.16em;
   text-transform: uppercase; color: var(--muted);
 }
@@ -102,7 +117,7 @@
 }
 .manifesto-pin {
   position: sticky; top: 0;
-  height: 100vh;
+  height: 100svh;
   display: flex; align-items: center; justify-content: center;
   padding: 0 var(--pad);
   overflow: hidden;
@@ -117,7 +132,7 @@
 }
 .manifesto-text .word {
   display: inline-block;
-  color: var(--line-strong);
+  color: var(--muted-2);
   transition: color 0.25s linear;
 }
 .manifesto-text .word.lit { color: var(--ink); }
@@ -164,9 +179,14 @@
   min-height: 360px;
   display: flex; flex-direction: column; justify-content: space-between;
   overflow: hidden;
-  transition: transform 0.5s var(--ease), border-color 0.4s var(--ease), background 0.4s var(--ease);
+  /* Includes opacity so the .reveal fade-in still runs (this rule loads after base.css) */
+  transition: opacity 0.4s var(--ease-out), transform 0.4s var(--ease-out),
+    border-color 0.2s ease, background-color 0.2s ease;
 }
-.service-card:hover { transform: translateY(-4px); border-color: var(--line-strong); }
+@media (hover: hover) and (pointer: fine) {
+  .service-card:hover { transform: translateY(-4px); border-color: var(--line-strong); }
+}
+.service-card:active { transform: scale(0.99); transition-duration: 100ms; }
 
 .service-card .num {
   font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
@@ -218,7 +238,7 @@
   background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 50%, var(--bg) 100%);
 }
 .agentnet-pin {
-  position: sticky; top: 0; height: 100vh;
+  position: sticky; top: 0; height: 100svh;
   display: grid; grid-template-columns: 0.9fr 1.1fr;
   align-items: center; gap: 40px;
   padding: 0 var(--pad);
@@ -226,6 +246,7 @@
 }
 .agentnet-copy h2 { margin-bottom: 24px; }
 .agentnet-copy .step-list {
+  list-style: none;
   margin-top: 32px;
   display: flex; flex-direction: column; gap: 14px;
 }
@@ -234,8 +255,8 @@
   gap: 14px; align-items: baseline;
   padding: 10px 0;
   border-top: 1px solid var(--line);
-  opacity: 0.4;
-  transition: opacity 0.4s var(--ease);
+  opacity: 0.65;
+  transition: opacity 0.3s var(--ease-out);
 }
 .agentnet-copy .step.active { opacity: 1; }
 .agentnet-copy .step .n {
@@ -272,7 +293,7 @@
   height: 320vh;
 }
 .process-pin {
-  position: sticky; top: 0; height: 100vh;
+  position: sticky; top: 0; height: 100svh;
   overflow: hidden;
   display: flex; flex-direction: column; justify-content: center;
 }
@@ -468,6 +489,14 @@ section.cta {
   .stat:nth-child(1), .stat:nth-child(2) { border-bottom: 1px solid var(--line); }
   .footer-grid { grid-template-columns: 1fr 1fr; }
   .agentnet-pin { grid-template-columns: 1fr; gap: 24px; }
+  /* Phones: don't pin the diagram (it clipped under the nav); let it scroll normally */
+  .agentnet { height: auto; }
+  .agentnet-pin { position: relative; height: auto; padding-block: 96px; overflow: visible; }
+  .agentnet-stage { justify-self: center; }
+  /* Keep the mark behind the text and quiet */
+  .hero-mark-wrap { width: 72vw; top: auto; bottom: 4%; right: -18%; }
+  .hero-mark-wrap img { opacity: 0.35; }
+  .hero-orbits { width: 72vw; top: auto; bottom: 4%; right: -18%; opacity: 0.5; }
   .hero-meta { grid-template-columns: 1fr 1fr; }
   .services-head { grid-template-columns: 1fr; gap: 28px; }
 }

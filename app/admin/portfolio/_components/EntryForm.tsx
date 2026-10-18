@@ -1,5 +1,6 @@
 import type { PortfolioEntry } from "@/lib/db/schema";
 import SubmitButton from "../../_components/SubmitButton";
+import Link from "next/link";
 
 type Metric = { label: string; value: string };
 
@@ -138,9 +139,9 @@ export default function EntryForm({ entry, action, error }: Props) {
         <SubmitButton className="btn btn-solid" pendingLabel={entry ? "Saving…" : "Creating…"}>
           {entry ? "Save changes" : "Create entry"}
         </SubmitButton>
-        <a href="/admin/portfolio" className="btn btn-outline">
+        <Link href="/admin/portfolio" className="btn btn-outline">
           Cancel
-        </a>
+        </Link>
       </div>
     </form>
   );

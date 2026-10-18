@@ -21,6 +21,8 @@ export default async function AdminInboxPage({
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
   const offset = (page - 1) * PAGE_SIZE;
 
+  // Server component, rendered per request: reading the clock here is intended.
+  // eslint-disable-next-line react-hooks/purity
   const last24h = new Date(Date.now() - 1000 * 60 * 60 * 24);
   const where = q
     ? sql`(${schema.contacts.name} ILIKE ${"%" + q + "%"}

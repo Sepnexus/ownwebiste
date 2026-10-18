@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { currencyOptions } from "@/lib/currencies";
 import { formatMoneyCents, currencySymbol } from "@/lib/format";
+import Link from "next/link";
 
 type LineItem = { description: string; quantity: string; unitAmount: string };
 
@@ -386,9 +387,9 @@ export default function ManualInvoiceForm() {
         >
           {pending ? "Creating…" : "Create invoice"}
         </button>
-        <a href="/admin/invoices" className="btn btn-ghost" style={{ padding: "10px 18px" }}>
+        <Link href="/admin/invoices" className="btn btn-ghost" style={{ padding: "10px 18px" }}>
           Cancel
-        </a>
+        </Link>
       </div>
       <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 10 }}>
         The invoice is created as <strong>unpaid</strong> with a sequential

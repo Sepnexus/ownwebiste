@@ -1,81 +1,131 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useId, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import {
+  DoneRing,
+  EMAIL_RE,
+  FormError,
+  Honeypot,
+  invalidProps,
+} from "@/app/login/_components/formUi";
 
-const TYPES = [
-  { value: "contact", label: "General inquiry" },
-  { value: "request_access", label: "Request dashboard access" },
-  { value: "project_inquiry", label: "Custom project quote" },
-  { value: "support", label: "Existing customer — support" },
+type Enquiry = "project" | "access";
+type Field = "name" | "email" | "message";
+
+// The NEEDS list from the design's Contact.dc.html, unchanged.
+const NEEDS = [
+  "Estate 360 agents",
+  "Follow-up automation",
+  "Deal tools",
+  "Managed hosting",
+  "AI for my business",
+  "Web app or portal",
 ];
 
-export default function ContactForm() {
-  const searchParams = useSearchParams();
-  const formRef = useRef<HTMLFormElement>(null);
-  const doneHeadingRef = useRef<HTMLHeadingElement>(null);
-  const prevDone = useRef(false);
-  const [type, setType] = useState("contact");
-  const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(false);
-  // After one send the form is re-mounted by "Send another". The page's
-  // reveal-on-scroll observer only runs once per route, so the new form
-  // must start already revealed or it stays invisible.
-  const [sentOnce, setSentOnce] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+/** The switch's two options → the `type` POST /api/contact expects. */
+const API_TYPE = { project: "project_inquiry", access: "request_access" } as const;
 
-  useEffect(() => {
-    const t = searchParams.get("type");
-    if (t && TYPES.some((x) => x.value === t)) setType(t);
-  }, [searchParams]);
+const MIN_MESSAGE = 10;
+
+/**
+ * The form card of Contact.dc.html: Start a project / Request access switch,
+ * the fields, the "What do you need?" chips (projects only) and the
+ * "Message received." state. Sends to POST /api/contact.
+ */
+export default function ContactForm({
+  initialType = "project",
+  queryMeta,
+}: {
+  initialType?: Enquiry;
+  /** Extra context from the link that brought the person here (plan, period…), stored with the message. */
+  queryMeta?: Record<string, string>;
+}) {
+  const errorId = useId();
+  const nameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const messageRef = useRef<HTMLTextAreaElement>(null);
+  const doneHeadingRef = useRef<HTMLHeadingElement>(null);
+  const prevSent = useRef(false);
+  const [type, setType] = useState<Enquiry>(initialType);
+  const [picked, setPicked] = useState<Record<string, boolean>>({});
+  const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [invalid, setInvalid] = useState<Field | null>(null);
+
+  const isProject = type === "project";
 
   // Keep keyboard / screen-reader users in place when the view swaps:
-  // success → focus the "Thank you" heading; "Send another" → first field.
+  // sent → the "Message received." heading; "Send another" → the first field.
   useEffect(() => {
-    if (prevDone.current === done) return;
-    prevDone.current = done;
-    if (done) {
-      doneHeadingRef.current?.focus();
-    } else {
-      formRef.current?.querySelector<HTMLElement>("select, input, textarea")?.focus();
-    }
-  }, [done]);
+    if (prevSent.current === sent) return;
+    prevSent.current = sent;
+    if (sent) doneHeadingRef.current?.focus();
+    else nameRef.current?.focus();
+  }, [sent]);
+
+  function fail(message: string, field: Field) {
+    setError(message);
+    setInvalid(field);
+    const refs = { name: nameRef, email: emailRef, message: messageRef };
+    refs[field].current?.focus();
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (submitting) return;
     setError(null);
+    setInvalid(null);
+
+    const data = new FormData(e.currentTarget);
+    const name = String(data.get("name") ?? "").trim();
+    const email = String(data.get("email") ?? "").trim();
+    const company = String(data.get("company") ?? "").trim();
+    const crm = String(data.get("crm") ?? "");
+    const message = String(data.get("message") ?? "").trim();
+
+    if (!name) return fail("Enter your name.", "name");
+    if (!email) return fail("Enter your work email.", "email");
+    if (!EMAIL_RE.test(email)) {
+      return fail("That email address doesn't look right. Check it and try again.", "email");
+    }
+    if (message.length < MIN_MESSAGE) {
+      return fail(
+        message
+          ? `Your message needs at least ${MIN_MESSAGE} characters — add a few more words so we know how to help.`
+          : `Add a short message so we know how to help (at least ${MIN_MESSAGE} characters).`,
+        "message",
+      );
+    }
+
+    const meta: Record<string, string | string[]> = { ...queryMeta, crm };
+    if (isProject) meta.services = NEEDS.filter((n) => picked[n]);
+
     setSubmitting(true);
-
-    const formEl = e.currentTarget;
-    const data = new FormData(formEl);
-    const payload = {
-      type: String(data.get("type") ?? "contact"),
-      name: String(data.get("name") ?? "").trim(),
-      email: String(data.get("email") ?? "").trim(),
-      company: String(data.get("company") ?? "").trim() || null,
-      message: String(data.get("message") ?? "").trim(),
-      consent: data.get("consent") === "on",
-      meta: {
-        plan: searchParams.get("plan"),
-        period: searchParams.get("period"),
-      },
-    };
-
     try {
       const r = await fetch("/api/contact", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          type: API_TYPE[type],
+          name,
+          email,
+          company: company || null,
+          message,
+          // Given by sending: the line under the button says what we keep and why.
+          consent: true,
+          meta,
+          website: String(data.get("website") ?? ""),
+        }),
       });
       if (!r.ok) {
         const body = (await r.json().catch(() => ({}))) as { error?: string };
         setError(body.error ?? "Something went wrong. Please try again.");
         return;
       }
-      setDone(true);
-      setSentOnce(true);
-      formEl.reset();
+      setSent(true);
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -83,41 +133,23 @@ export default function ContactForm() {
     }
   }
 
-  if (done) {
+  if (sent) {
     return (
-      <div
-        className="reveal in"
-        style={{
-          padding: "32px",
-          border: "1px solid var(--line)",
-          borderRadius: 18,
-          background: "rgba(255,255,255,0.6)",
-          maxWidth: 640,
-        }}
-      >
-        <h3
-          ref={doneHeadingRef}
-          tabIndex={-1}
-          style={{
-            fontFamily: "var(--serif)",
-            fontStyle: "italic",
-            fontWeight: 400,
-            fontSize: 32,
-            margin: "0 0 8px",
-            color: "var(--ink)",
-            outline: "none",
-          }}
-        >
-          Thank you.
-        </h3>
-        <p style={{ color: "var(--muted)", margin: "0 0 16px", lineHeight: 1.6 }}>
-          We received your message. If a fit, we&apos;ll be back within 48 hours from
-          akshay@sepnexus.com.
+      <div className="done" role="status">
+        <DoneRing />
+        <h2 ref={doneHeadingRef} tabIndex={-1} className="h-m" style={{ outline: "none" }}>
+          Message received.
+        </h2>
+        <p className="lede" style={{ maxWidth: "360px" }}>
+          Thanks — we’ll reply within 48 hours with a next step.
         </p>
         <button
           type="button"
-          className="btn btn-outline"
-          onClick={() => setDone(false)}
+          className="btn btn-ghost"
+          onClick={() => {
+            setSent(false);
+            setPicked({});
+          }}
         >
           Send another
         </button>
@@ -126,88 +158,161 @@ export default function ContactForm() {
   }
 
   return (
+    // method="post": a submit before hydration posts instead of putting the
+    // person's details in the URL.
     <form
-      ref={formRef}
-      className={sentOnce ? "contact-form reveal in" : "contact-form reveal"}
+      method="post"
+      noValidate
       onSubmit={onSubmit}
+      style={{ display: "flex", flexDirection: "column", gap: "22px" }}
     >
-      <label>
-        I&apos;m here to
-        <select
-          name="type"
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          required
+      <div className="seg" role="group" aria-label="Enquiry type">
+        <button
+          type="button"
+          className={isProject ? "on" : undefined}
+          aria-pressed={isProject}
+          onClick={() => setType("project")}
         >
-          {TYPES.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))",
-          gap: 18,
-        }}
-      >
-        <label>
-          Your name
-          <input name="name" type="text" required autoComplete="name" />
-        </label>
-        <label>
-          Email
+          Start a project
+        </button>
+        <button
+          type="button"
+          className={isProject ? undefined : "on"}
+          aria-pressed={!isProject}
+          onClick={() => setType("access")}
+        >
+          Request access
+        </button>
+      </div>
+      <div className="row2">
+        <div className="field">
+          <label htmlFor="c-name">Name</label>
           <input
+            ref={nameRef}
+            id="c-name"
+            name="name"
+            type="text"
+            autoComplete="name"
+            placeholder="Your name"
+            required
+            maxLength={120}
+            {...invalidProps(invalid === "name", errorId)}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="c-email">Work email</label>
+          <input
+            ref={emailRef}
+            id="c-email"
             name="email"
             type="email"
-            required
             autoComplete="email"
             autoCapitalize="none"
             spellCheck={false}
+            placeholder="you@company.com"
+            required
+            maxLength={254}
+            {...invalidProps(invalid === "email", errorId)}
           />
-        </label>
+        </div>
       </div>
-      <label>
-        Company (optional)
-        <input name="company" type="text" autoComplete="organization" />
-      </label>
-      <label>
-        What are you trying to solve?
-        <textarea
-          name="message"
-          required
-          minLength={10}
-          placeholder="The loop you want closed, the bottleneck you want gone, or the project scope."
-        />
-      </label>
-      <label className="check-row">
-        <input type="checkbox" name="consent" required />
-        <span>
-          I consent to Sepnexus storing the information I submit so they can respond. We don&apos;t
-          share it with anyone else. (Required.)
-        </span>
-      </label>
-      {error && (
-        <p className="form-msg error" role="alert">
-          {error}
-        </p>
+      <div className="row2">
+        <div className="field">
+          <label htmlFor="c-co">Company</label>
+          <input
+            id="c-co"
+            name="company"
+            type="text"
+            autoComplete="organization"
+            placeholder="Company name"
+            maxLength={160}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="c-crm">Current CRM</label>
+          <select id="c-crm" name="crm">
+            <option>GoHighLevel</option>
+            <option>HubSpot</option>
+            <option>Close</option>
+            <option>Other</option>
+            <option>None yet</option>
+          </select>
+        </div>
+      </div>
+      {isProject && (
+        <div className="field">
+          <span className="flabel" id="need-lbl">
+            What do you need?
+          </span>
+          <div className="chips" role="group" aria-labelledby="need-lbl">
+            {NEEDS.map((label) => (
+              <button
+                key={label}
+                type="button"
+                className={picked[label] ? "chipbtn on" : "chipbtn"}
+                aria-pressed={!!picked[label]}
+                onClick={() => setPicked((p) => ({ ...p, [label]: !p[label] }))}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
-      <div>
-        <button type="submit" className="btn btn-solid" disabled={submitting}>
-          {submitting ? "Sending…" : "Send"}
-          <svg className="arrow" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path
-              d="M3 11L11 3M11 3H4M11 3V10"
-              stroke="currentColor"
-              strokeWidth="1.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
+      <div className="field">
+        <label htmlFor="c-msg">
+          {isProject ? "Where do your leads go cold?" : "Which dashboard or tool do you need access to?"}
+        </label>
+        <textarea
+          ref={messageRef}
+          id="c-msg"
+          name="message"
+          placeholder={
+            isProject
+              ? "Tell us about your pipeline, tools and what’s eating your time."
+              : "Your company and the system you use with us."
+          }
+          required
+          minLength={MIN_MESSAGE}
+          maxLength={5000}
+          {...invalidProps(invalid === "message", errorId)}
+        />
       </div>
+      <Honeypot />
+      {error && <FormError id={errorId}>{error}</FormError>}
+      <button type="submit" className="btn btn-full" disabled={submitting}>
+        {submitting ? "Sending…" : isProject ? "Send project details" : "Request access"}
+      </button>
+      <p className="fine">
+        We reply within 48 hours. Your details are only used to answer you. By sending, you agree
+        to us storing them for that — see our <Link href="/legal/privacy">Privacy policy</Link>.
+      </p>
     </form>
   );
+}
+
+/**
+ * ContactForm with its starting state taken from the URL:
+ * `?type=project_inquiry` → Start a project, `?type=request_access` → Request
+ * access. `?type=support` (the "Contact support" links on the reset and invite
+ * pages) also opens Request access, the closest fit for someone who can't get
+ * into their account; the original type is kept in the message's meta.
+ * `?plan=` / `?period=` are stored with the message, as before.
+ *
+ * Uses useSearchParams, so it must sit inside <Suspense>; the page renders a
+ * plain <ContactForm /> as the fallback so the card is never empty.
+ */
+export function ContactFormFromQuery() {
+  const sp = useSearchParams();
+  const t = sp.get("type");
+  const initialType: Enquiry = t === "request_access" || t === "support" ? "access" : "project";
+
+  const queryMeta: Record<string, string> = {};
+  for (const key of ["plan", "period"]) {
+    const v = sp.get(key);
+    if (v) queryMeta[key] = v;
+  }
+  if (t && t !== "project_inquiry" && t !== "request_access") queryMeta.requestedType = t;
+
+  return <ContactForm key={initialType} initialType={initialType} queryMeta={queryMeta} />;
 }

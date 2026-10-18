@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { FormError, invalidProps } from "@/app/login/_components/formUi";
 
 type Field = "password" | "confirm";
 
@@ -21,12 +22,6 @@ export default function ResetForm({ token, email }: { token: string; email?: str
     setInvalid(field);
     if (field === "password") passwordRef.current?.focus();
     if (field === "confirm") confirmRef.current?.focus();
-  }
-
-  function fieldA11y(field: Field) {
-    return invalid === field
-      ? { "aria-invalid": true as const, "aria-describedby": errorId }
-      : {};
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -71,7 +66,14 @@ export default function ResetForm({ token, email }: { token: string; email?: str
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="contact-form" style={{ gap: 14 }}>
+    // method="post": a submit before hydration posts instead of putting the
+    // password in the URL.
+    <form
+      method="post"
+      noValidate
+      onSubmit={onSubmit}
+      style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+    >
       {/* Hidden username so password managers save the new password against
           the right account. Not shown: the page already says which email. */}
       {email && (
@@ -84,10 +86,11 @@ export default function ResetForm({ token, email }: { token: string; email?: str
           hidden
         />
       )}
-      <label>
-        New password
+      <div className="field">
+        <label htmlFor="rs-pass">New password</label>
         <input
           ref={passwordRef}
+          id="rs-pass"
           type="password"
           name="password"
           required
@@ -95,13 +98,14 @@ export default function ResetForm({ token, email }: { token: string; email?: str
           autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          {...fieldA11y("password")}
+          {...invalidProps(invalid === "password", errorId)}
         />
-      </label>
-      <label>
-        Confirm new password
+      </div>
+      <div className="field">
+        <label htmlFor="rs-confirm">Confirm new password</label>
         <input
           ref={confirmRef}
+          id="rs-confirm"
           type="password"
           name="confirm"
           required
@@ -109,20 +113,11 @@ export default function ResetForm({ token, email }: { token: string; email?: str
           autoComplete="new-password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          {...fieldA11y("confirm")}
+          {...invalidProps(invalid === "confirm", errorId)}
         />
-      </label>
-      {error && (
-        <p id={errorId} className="form-msg error" role="alert">
-          {error}
-        </p>
-      )}
-      <button
-        type="submit"
-        className="btn btn-solid"
-        disabled={submitting}
-        style={{ marginTop: 8 }}
-      >
+      </div>
+      {error && <FormError id={errorId}>{error}</FormError>}
+      <button type="submit" className="btn btn-full" disabled={submitting}>
         {submitting ? "Setting…" : "Set new password"}
       </button>
     </form>

@@ -1,6 +1,7 @@
 import type { PricingPlan } from "@/lib/db/schema";
 import { currencyOptions } from "@/lib/currencies";
 import SubmitButton from "../../_components/SubmitButton";
+import Link from "next/link";
 
 type Props = {
   plan?: PricingPlan;
@@ -257,9 +258,9 @@ export default function PlanForm({ plan, action, error, customForUserId, customF
         >
           {plan ? "Save changes" : "Create plan"}
         </SubmitButton>
-        <a href="/admin/pricing" className="btn btn-outline">
+        <Link href="/admin/pricing" className="btn btn-outline">
           Cancel
-        </a>
+        </Link>
       </div>
     </form>
   );

@@ -1,0 +1,29 @@
+/* Root-level rules shared by both stylesheets.
+   - New design pages render inside .sx   (styles/site/*.css)
+   - Dashboard, admin and checkout render inside .legacy (styles/legacy.css)
+   Each stylesheet is fenced to its own root, so their class names never collide. */
+
+body { margin: 0; background: #000; }
+
+/* Skip link: hidden until a keyboard user tabs to it */
+.skip-link {
+  position: fixed;
+  left: 12px;
+  top: -64px;
+  z-index: 1000;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #f5f5f7;
+  color: #000;
+  font: 500 14px/1.2 var(--font-sans), "Geist", ui-sans-serif, system-ui, sans-serif;
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+.skip-link:focus { top: 12px; }
+body:has(.legacy) .skip-link { background: #14110f; color: #f6f3ec; }
+
+/* Visible keyboard focus on the dark design */
+:where(.sx) :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--hi, #4da3ff);
+  outline-offset: 2px;
+}

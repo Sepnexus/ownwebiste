@@ -1,0 +1,6 @@
+
+:where(.sx.pg-signin) .auth{min-height:880px}
+:where(.sx.pg-signin) .auth-art .ring{position:absolute;left:50%;top:50%;border-radius:50%;transform:translate(-50%,-50%);border:1px dashed rgba(255,255,255,.12);pointer-events:none}
+:where(.sx.pg-signin) .mini-feats{display:flex;flex-direction:column;gap:12px}
+:where(.sx.pg-signin) .mini-feats div{display:flex;align-items:center;gap:12px;color:#d2d2d7;font-size:15px}
+:where(.sx.pg-signin) .row-between{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}

@@ -1,9 +1,13 @@
+import type { Viewport } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import AdminSignOut from "./_components/AdminSignOut";
 
 export const dynamic = "force-dynamic";
+
+// Admin keeps the original cream design (styles/legacy.css, fenced to .legacy).
+export const viewport: Viewport = { themeColor: "#f6f3ec", colorScheme: "light" };
 
 const NAV: { label: string; href: string; section: "main" | "system" }[] = [
   { label: "Overview", href: "/admin", section: "main" },
@@ -28,38 +32,40 @@ export default async function AdminLayout({
   if (user.role !== "admin") redirect("/dashboard");
 
   return (
-    <div className="admin-shell">
-      <aside className="admin-side">
-        <Link href="/admin" className="admin-brand">
-          <span className="serif-italic">Sepnexus</span>
-          <span className="tag">admin</span>
-        </Link>
-
-        <nav className="admin-nav">
-          {NAV.filter((n) => n.section === "main").map((n) => (
-            <Link key={n.href} href={n.href}>
-              {n.label}
-            </Link>
-          ))}
-          <div className="admin-nav-divider" />
-          {NAV.filter((n) => n.section === "system").map((n) => (
-            <Link key={n.href} href={n.href}>
-              {n.label}
-            </Link>
-          ))}
-          <Link href="/" target="_blank" rel="noreferrer">
-            View site ↗
+    <div className="legacy">
+      <div className="admin-shell">
+        <aside className="admin-side">
+          <Link href="/admin" className="admin-brand">
+            <span className="serif-italic">Sepnexus</span>
+            <span className="tag">admin</span>
           </Link>
-          <AdminSignOut />
-        </nav>
 
-        <div className="admin-user">
-          <div className="admin-user-name">{user.name ?? user.email}</div>
-          <div className="admin-user-email">{user.email}</div>
-        </div>
-      </aside>
+          <nav className="admin-nav">
+            {NAV.filter((n) => n.section === "main").map((n) => (
+              <Link key={n.href} href={n.href}>
+                {n.label}
+              </Link>
+            ))}
+            <div className="admin-nav-divider" />
+            {NAV.filter((n) => n.section === "system").map((n) => (
+              <Link key={n.href} href={n.href}>
+                {n.label}
+              </Link>
+            ))}
+            <Link href="/" target="_blank" rel="noreferrer">
+              View site ↗
+            </Link>
+            <AdminSignOut />
+          </nav>
 
-      <main id="main" className="admin-main">{children}</main>
+          <div className="admin-user">
+            <div className="admin-user-name">{user.name ?? user.email}</div>
+            <div className="admin-user-email">{user.email}</div>
+          </div>
+        </aside>
+
+        <main id="main" className="admin-main">{children}</main>
+      </div>
     </div>
   );
 }

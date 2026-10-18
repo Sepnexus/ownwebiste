@@ -17,7 +17,7 @@ export default async function SubscribePage({
   searchParams: Promise<{ planId?: string; period?: string }>;
 }) {
   const sp = await searchParams;
-  if (!sp.planId) redirect("/pricing");
+  if (!sp.planId) redirect("/hosting");
   const period: "monthly" | "yearly" = sp.period === "yearly" ? "yearly" : "monthly";
 
   const [plan] = await db
@@ -45,7 +45,7 @@ export default async function SubscribePage({
       <main id="main" className="page">
         <div className="page-narrow">
           <Link
-            href="/pricing"
+            href="/hosting"
             style={{
               fontFamily: "var(--mono)",
               fontSize: 12,
@@ -53,7 +53,7 @@ export default async function SubscribePage({
               textDecoration: "none",
             }}
           >
-            ← All plans
+            ← Hosting
           </Link>
           <span className="page-eyebrow reveal" style={{ marginTop: 14 }}>
             Subscribe — secure checkout via Razorpay

@@ -1,0 +1,12 @@
+
+:where(.sx.pg-work) .sec-white .pill{border-color:#d2d2d7;background:#fff;color:#1d1d1f !important}
+:where(.sx.pg-work) .sec-white .pill:hover{background:#f5f5f7}
+:where(.sx.pg-work) .sec-white .pill.on{background:#1d1d1f;color:#fff !important;border-color:#1d1d1f}
+:where(.sx.pg-work) .feat-big{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:56px;align-items:center;padding:56px;border-radius:36px;background:#0b0b0d;border:1px solid var(--line);overflow:hidden;position:relative}
+:where(.sx.pg-work) .feat-big::before{content:"";position:absolute;right:-120px;top:-160px;width:560px;height:560px;border-radius:50%;background:radial-gradient(closest-side,color-mix(in oklab,var(--accent) 40%,transparent),transparent);pointer-events:none}
+:where(.sx.pg-work) .callcard{position:relative;background:#1c1c1e;border:1px solid var(--line);border-radius:28px;padding:28px;display:flex;flex-direction:column;gap:18px}
+:where(.sx.pg-work) .line{display:flex;gap:12px;font-size:15px;line-height:1.45}
+:where(.sx.pg-work) .line .who{flex:none;width:44px;color:#86868b;font-family:var(--font-mono),'Geist Mono',ui-monospace,monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding-top:3px}
+:where(.sx.pg-work) .count-lbl{color:#86868b;font-size:14px}
+@container page (max-width: 1060px){:where(.sx.pg-work) .feat-big{grid-template-columns:minmax(0,1fr);padding:32px}}
+@container page (max-width: 700px){:where(.sx.pg-work) .feat-big{padding:24px;border-radius:28px}}

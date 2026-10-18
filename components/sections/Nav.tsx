@@ -6,8 +6,8 @@ import Image from "next/image";
 
 const NAV_LINKS: { label: string; href: string }[] = [
   { label: "Services", href: "/services" },
-  { label: "Portfolio", href: "/portfolio" },
-  { label: "Pricing", href: "/pricing" },
+  { label: "Work", href: "/portfolio" },
+  { label: "Hosting", href: "/hosting" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];

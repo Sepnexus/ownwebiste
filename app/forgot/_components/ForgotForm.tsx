@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-
-const EMAIL_RE = /^\S+@\S+\.\S+$/;
+import { DoneRing, EMAIL_RE, FormError, invalidProps } from "@/app/login/_components/formUi";
 
 export default function ForgotForm() {
   const errorId = useId();
@@ -68,22 +67,12 @@ export default function ForgotForm() {
 
   if (done) {
     return (
-      <div>
-        <h2
-          ref={doneHeadingRef}
-          tabIndex={-1}
-          style={{
-            fontFamily: "var(--serif)",
-            fontWeight: 400,
-            fontSize: 22,
-            margin: "0 0 8px",
-            color: "var(--ink)",
-            outline: "none",
-          }}
-        >
+      <div className="done" role="status">
+        <DoneRing />
+        <h2 ref={doneHeadingRef} tabIndex={-1} className="h-s" style={{ outline: "none" }}>
           Check your inbox.
         </h2>
-        <p style={{ color: "var(--ink-2)", lineHeight: 1.6, fontSize: 14, margin: 0 }}>
+        <p className="muted" style={{ margin: "0", maxWidth: "320px", lineHeight: "1.5" }}>
           If an account with that email exists, a reset link is on its way. Check your inbox in a
           minute (and your spam folder, just in case).
         </p>
@@ -92,11 +81,22 @@ export default function ForgotForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="contact-form" style={{ gap: 14 }}>
-      <label>
-        Email
+    <form
+      noValidate
+      onSubmit={onSubmit}
+      style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <h2 className="h-s">Forgot password</h2>
+        <p className="muted" style={{ margin: "0", fontSize: "15px" }}>
+          Enter your email and we&apos;ll send a reset link. Valid for 1 hour.
+        </p>
+      </div>
+      <div className="field">
+        <label htmlFor="f-email">Email</label>
         <input
           ref={emailRef}
+          id="f-email"
           type="email"
           name="email"
           required
@@ -104,23 +104,14 @@ export default function ForgotForm() {
           autoComplete="email"
           autoCapitalize="none"
           spellCheck={false}
+          placeholder="you@company.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          aria-invalid={emailInvalid || undefined}
-          aria-describedby={emailInvalid && error ? errorId : undefined}
+          {...invalidProps(emailInvalid && !!error, errorId)}
         />
-      </label>
-      {error && (
-        <p id={errorId} className="form-msg error" role="alert">
-          {error}
-        </p>
-      )}
-      <button
-        type="submit"
-        className="btn btn-solid"
-        disabled={submitting}
-        style={{ marginTop: 8 }}
-      >
+      </div>
+      {error && <FormError id={errorId}>{error}</FormError>}
+      <button type="submit" className="btn btn-full" disabled={submitting}>
         {submitting ? "Sending…" : "Send reset link"}
       </button>
     </form>

@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { FormError, invalidProps } from "@/app/login/_components/formUi";
 
 type Field = "password" | "confirm";
 
@@ -30,12 +31,6 @@ export default function AcceptForm({
     setInvalid(field);
     if (field === "password") passwordRef.current?.focus();
     if (field === "confirm") confirmRef.current?.focus();
-  }
-
-  function fieldA11y(field: Field) {
-    return invalid === field
-      ? { "aria-invalid": true as const, "aria-describedby": errorId }
-      : {};
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -79,22 +74,31 @@ export default function AcceptForm({
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="contact-form" style={{ gap: 14 }}>
-      <label>
-        Email
+    // method="post": a submit before hydration posts instead of putting the
+    // password in the URL.
+    <form
+      method="post"
+      noValidate
+      onSubmit={onSubmit}
+      style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+    >
+      <div className="field">
+        <label htmlFor="i-email">Email</label>
         {/* readOnly (not disabled) so password managers pick it up as the username. */}
         <input
+          id="i-email"
           type="email"
           name="email"
           autoComplete="username"
           value={email}
           readOnly
-          style={{ color: "var(--muted)", cursor: "default" }}
+          style={{ color: "#a1a1a6", cursor: "default" }}
         />
-      </label>
-      <label>
-        Your name (optional)
+      </div>
+      <div className="field">
+        <label htmlFor="i-name">Your name (optional)</label>
         <input
+          id="i-name"
           type="text"
           name="name"
           autoComplete="name"
@@ -102,11 +106,12 @@ export default function AcceptForm({
           onChange={(e) => setName(e.target.value)}
           placeholder="Jane Doe"
         />
-      </label>
-      <label>
-        Password
+      </div>
+      <div className="field">
+        <label htmlFor="i-pass">Password</label>
         <input
           ref={passwordRef}
+          id="i-pass"
           type="password"
           name="password"
           required
@@ -114,13 +119,14 @@ export default function AcceptForm({
           autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          {...fieldA11y("password")}
+          {...invalidProps(invalid === "password", errorId)}
         />
-      </label>
-      <label>
-        Confirm password
+      </div>
+      <div className="field">
+        <label htmlFor="i-confirm">Confirm password</label>
         <input
           ref={confirmRef}
+          id="i-confirm"
           type="password"
           name="confirm"
           required
@@ -128,20 +134,11 @@ export default function AcceptForm({
           autoComplete="new-password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          {...fieldA11y("confirm")}
+          {...invalidProps(invalid === "confirm", errorId)}
         />
-      </label>
-      {error && (
-        <p id={errorId} className="form-msg error" role="alert">
-          {error}
-        </p>
-      )}
-      <button
-        type="submit"
-        className="btn btn-solid"
-        disabled={submitting}
-        style={{ marginTop: 8 }}
-      >
+      </div>
+      {error && <FormError id={errorId}>{error}</FormError>}
+      <button type="submit" className="btn btn-full" disabled={submitting}>
         {submitting ? "Setting up…" : "Accept invite & sign in"}
       </button>
     </form>

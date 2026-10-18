@@ -168,7 +168,7 @@ export default function TwoFactor({
           <span aria-hidden="true">✓</span> Two-factor authentication is on
         </div>
         <div style={{ color: "var(--ink-2)", fontSize: 14, marginBottom: 14, lineHeight: 1.6 }}>
-          Enabled {enabledAt ? new Date(enabledAt).toLocaleDateString() : ""}. You'll be asked
+          Enabled {enabledAt ? new Date(enabledAt).toLocaleDateString() : ""}. You’ll be asked
           for a 6-digit code from your authenticator app every time you sign in.
         </div>
 
@@ -258,7 +258,7 @@ export default function TwoFactor({
         </h3>
         <p style={{ color: "var(--muted)", fontSize: 14, lineHeight: 1.6, margin: "0 0 16px" }}>
           You can use any one of these codes <strong>once</strong> to sign in if you lose your
-          authenticator device. Store them somewhere safe right now — they won't be shown again.
+          authenticator device. Store them somewhere safe right now — they won’t be shown again.
         </p>
         <div
           style={{

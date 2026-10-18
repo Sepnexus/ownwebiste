@@ -1,0 +1,17 @@
+
+:where(.sx.pg-about) .mark-wrap{position:relative;width:100%;max-width:520px;aspect-ratio:1;margin-left:auto;display:grid;place-items:center}
+:where(.sx.pg-about) .mark-wrap::before{content:"";position:absolute;inset:8%;border-radius:50%;background:conic-gradient(from 0deg,#1BA8E0,#FDBE2E,#F0922C,#E8514C,#4E2460,#A456A8,#1BA8E0);filter:blur(70px);opacity:.38}
+:where(.sx.pg-about) .mark-ring{position:absolute;inset:0;border-radius:50%;border:1px dashed rgba(255,255,255,.14)}
+:where(.sx.pg-about) .mark-ring.r2{inset:12%;border-style:solid;border-color:rgba(255,255,255,.08)}
+.m-on:where(.sx.pg-about) .mark-ring{animation:spin 50s linear infinite}
+:where(.sx.pg-about) .big-mark{position:relative;width:62%;height:auto}
+.m-on:where(.sx.pg-about) .big-mark{animation:spin 70s linear infinite reverse}
+:where(.sx.pg-about) .facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+:where(.sx.pg-about) .facts div{padding:32px 24px 32px 0;display:flex;flex-direction:column;gap:10px}
+:where(.sx.pg-about) .facts div+div{padding-left:24px;border-left:1px solid var(--line)}
+:where(.sx.pg-about) .facts b{font-size:clamp(22px,2.2cqi,30px);font-weight:620;letter-spacing:-.03em}
+:where(.sx.pg-about) .facts .mono{color:#86868b}
+:where(.sx.pg-about) .pin-l{position:absolute;transform:translate(-50%,-130%);display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 14px;border-radius:14px;background:rgba(28,28,30,.85);border:1px solid rgba(255,255,255,.12);font-size:14px;white-space:nowrap;backdrop-filter:blur(10px)}
+:where(.sx.pg-about) .pin-l small{color:#a1a1a6;font-size:12px}
+@container page (max-width: 1060px){:where(.sx.pg-about) .facts{grid-template-columns:repeat(2,minmax(0,1fr))}:where(.sx.pg-about) .facts div:nth-child(3){padding-left:0;border-left:0}:where(.sx.pg-about) .facts div:nth-child(n+3){border-top:1px solid var(--line)}:where(.sx.pg-about) .mark-wrap{margin:0 auto;max-width:400px}}
+@container page (max-width: 700px){:where(.sx.pg-about) .pin-l{font-size:12px;padding:7px 10px}:where(.sx.pg-about) .pin-l small{display:none}}

@@ -139,7 +139,7 @@ export default function UsagePanel({
         )}
         {hasLimit && at80 && (
           <span style={{ color: "var(--c-orange-ink)" }}>
-            You're at {Math.round((used / included) * 100)}% of your allowance. Consider
+            You’re at {Math.round((used / included) * 100)}% of your allowance. Consider
             upgrading if you expect another big batch.
           </span>
         )}

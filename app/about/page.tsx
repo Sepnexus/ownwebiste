@@ -1,148 +1,428 @@
 import type { Metadata } from "next";
-import Nav from "@/components/sections/Nav";
-import Footer from "@/components/sections/Footer";
-import CTA from "@/components/sections/CTA";
+import Image from "next/image";
+import Link from "next/link";
+import SiteShell from "@/components/site/SiteShell";
+import SiteNav from "@/components/site/SiteNav";
+import SiteFooter from "@/components/site/SiteFooter";
 
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Sepnexus builds AI agents, automation and custom software for real estate investors and growing businesses. Based in Chandigarh, India, working with clients in the US and worldwide.",
+    "The people who scope your project are the people who build it — and the people who keep it running after launch. AI agents, automation and custom software for real estate investors and growing businesses.",
+  alternates: { canonical: "/about" },
 };
 
-const PRINCIPLES = [
-  {
-    n: "01",
-    title: "Systems, not scripts.",
-    body: "We build things that keep working after the demo: logged, monitored and easy to change. Not one-off scripts that break the first time a lead replies in a way nobody expected.",
-  },
-  {
-    n: "02",
-    title: "Operate what we ship.",
-    body: "If something we built stops working, we're the ones who fix it. We don't hand over the code and disappear.",
-  },
-  {
-    n: "03",
-    title: "AI where it earns its keep.",
-    body: "Most work just needs a reliable workflow. We use AI where judgement matters — reading a seller's reply, qualifying a lead, estimating repairs — and plain automation everywhere else.",
-  },
-  {
-    n: "04",
-    title: "Plain language, plain pricing.",
-    body: "Subscriptions billed monthly or yearly in USD. Custom builds quoted in writing before work starts. No retainers that quietly creep.",
-  },
-];
-
+// Ported from the Claude Design file About.dc.html. Markup, classes and wording
+// match the design exactly; styles live in styles/site/base.css + about.css.
 export default function AboutPage() {
   return (
-    <>
-      <Nav />
-      <main id="main" className="page">
-        <div className="page-narrow">
-          <span className="page-eyebrow reveal">About — Sepnexus</span>
-          <h1 className="page-title reveal">
-            We build the <em>quiet machines</em>
-            <br /> that keep modern businesses running.
-          </h1>
-          <p className="page-lede reveal">
-            Sepnexus builds AI agents, automation and custom software for real estate investors
-            and growing businesses. Most of our work is in real estate investing — lead
-            follow-up, AI calling, comping and KPI tracking — and the same tools work for any team
-            that wants more done without adding headcount. We&apos;re small on purpose: the
-            people who scope your project are the people who build it.
-          </p>
-
-          <div className="prose reveal">
-            <h2>What we do, in plain language</h2>
-            <p>
-              Most investors already know where deals leak: leads that wait hours for a reply,
-              follow-up that stops after the second text, offers worked out differently by every
-              rep, and numbers nobody trusts on Monday morning. We build the things that fix those
-              leaks, and then we keep them running.
-            </p>
-            <p>
-              In practice, that means Estate 360 agents that text and call sellers and book
-              appointments, follow-up automation in GoHighLevel and n8n, comping and underwriting
-              tools, KPI dashboards, partner and hiring portals, and the hosting all of it runs
-              on. Outside real estate, the same toolkit powers AI assistants, document automation
-              and integrations for other kinds of businesses.
-            </p>
-
-            <h2>How we work</h2>
-            <p>
-              We start with a call to map how leads, deals and data move through your business
-              today. Then we send a written plan: what gets built, what doesn&apos;t, what it costs
-              and how long it takes. We build in short steps you can see and try, connect
-              everything to the tools you already use, and keep it running after launch if you
-              want us to.
-            </p>
-            <p>
-              We&apos;ll happily say no to projects that should be a SaaS subscription. The work
-              we take is the work that needs us specifically.
-            </p>
-
-            <h2>Principles</h2>
-          </div>
-
-          <div className="reveal" style={{ display: "grid", gap: 18, marginTop: 8 }}>
-            {PRINCIPLES.map((p) => (
-              <div
-                key={p.n}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "60px 1fr",
-                  gap: 24,
-                  padding: "24px 0",
-                  borderTop: "1px solid var(--line)",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--mono)",
-                    fontSize: 13,
-                    color: "var(--muted)",
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  {p.n}
+    <SiteShell page="about">
+      <SiteNav current="about" />
+      <main id="main">
+        {/* HERO */}
+        <section className="phero">
+          <div className="wrap split">
+            <div className="phero-in">
+              <span className="eyebrow mono in d1">
+                About · Est. MMXXIV
+              </span>
+              <h1 className="h-xl in d2">
+                Small on
+                <br />
+                <span className="grad">
+                  purpose.
                 </span>
-                <div>
-                  <h3
-                    style={{
-                      fontFamily: "var(--serif)",
-                      fontWeight: 400,
-                      fontSize: 26,
-                      letterSpacing: "-0.01em",
-                      margin: "0 0 8px",
-                      color: "var(--ink)",
-                    }}
-                  >
-                    {p.title}
-                  </h3>
-                  <p style={{ margin: 0, color: "var(--ink-2)", lineHeight: 1.6 }}>{p.body}</p>
-                </div>
+              </h1>
+              <p className="lede in d3" style={{ maxWidth: "520px" }}>
+                The people who scope your project are the people who build it — and the people who keep it running after launch.
+              </p>
+              <div className="cta-row in d4">
+                <Link className="btn" href="/contact">
+                  Work with us
+                </Link>
+                <Link className="btn btn-ghost" href="/portfolio">
+                  See the work
+                </Link>
               </div>
-            ))}
+            </div>
+            <div className="mark-wrap in d5" aria-hidden="true">
+              <span className="mark-ring" />
+              <span className="mark-ring r2" />
+              <Image src="/assets/sepnexus-mark.png" width={500} height={500} className="big-mark" alt="" />
+            </div>
           </div>
-
-          <div className="prose reveal" style={{ marginTop: 56 }}>
-            <h2>Where we are</h2>
-            <p>
-              Sepnexus OPC Pvt Ltd is registered in Chandigarh, India. We work remotely with real
-              estate investors across the US and with businesses worldwide, and we take a limited
-              number of projects at a time so the person who scoped your work is the one building
-              it.
-            </p>
-
-            <h2>Want to work with us?</h2>
-            <p>
-              Start with the <a href="/contact?type=project_inquiry">project form</a>. Tell us
-              what you want automated or built and we&apos;ll come back within 48 hours.
+        </section>
+        {/* STATEMENT */}
+        <section className="sec" style={{ paddingTop: "40px" }}>
+          <div className="wrap">
+            <p className="big-p">
+              <span className="ft">
+                We build AI agents, automation and custom software
+              </span>
+              {" "}
+              <span className="ft">
+                for real estate investors and growing businesses.
+              </span>
+              {" "}
+              <span className="ft">
+                Most of our work is in real estate investing.
+              </span>
+              {" "}
+              <span className="ft">
+                The same tools serve any business that runs on leads,
+              </span>
+              {" "}
+              <span className="ft">
+                documents and follow-up.
+              </span>
             </p>
           </div>
-        </div>
+        </section>
+        {/* FACTS */}
+        <section style={{ paddingBottom: "168px" }}>
+          <div className="wrap">
+            <div className="facts rv">
+              <div>
+                <span className="mono">
+                  Founded
+                </span>
+                <b>
+                  MMXXIV
+                </b>
+              </div>
+              <div>
+                <span className="mono">
+                  Registered
+                </span>
+                <b>
+                  Chandigarh, India
+                </b>
+              </div>
+              <div>
+                <span className="mono">
+                  Clients
+                </span>
+                <b>
+                  US investors & worldwide
+                </b>
+              </div>
+              <div>
+                <span className="mono">
+                  Reply time
+                </span>
+                <b>
+                  Within 48 hours
+                </b>
+              </div>
+            </div>
+          </div>
+        </section>
+        {/* PRINCIPLES */}
+        <section className="sec" style={{ paddingTop: "0" }}>
+          <div className="wrap">
+            <div className="sec-head rv">
+              <span className="mono dim">
+                What we believe
+              </span>
+              <h2 className="h-l">
+                Four principles.
+                <br />
+                <span style={{ color: "#6e6e73" }}>
+                  Every project.
+                </span>
+              </h2>
+            </div>
+            <div className="prin rv">
+              <span className="mono">
+                01
+              </span>
+              <h3 className="ft">
+                Systems, not scripts.
+              </h3>
+              <p>
+                Built to keep working — logged, monitored and easy to change.
+              </p>
+            </div>
+            <div className="prin rv">
+              <span className="mono">
+                02
+              </span>
+              <h3 className="ft">
+                Operate what we ship.
+              </h3>
+              <p>
+                If we built it, we fix it. No hand-off and disappear.
+              </p>
+            </div>
+            <div className="prin rv">
+              <span className="mono">
+                03
+              </span>
+              <h3 className="ft">
+                AI where it earns its keep.
+              </h3>
+              <p>
+                AI for the judgment calls. Plain, reliable automation everywhere else.
+              </p>
+            </div>
+            <div className="prin rv" style={{ borderBottom: "1px solid var(--line)" }}>
+              <span className="mono">
+                04
+              </span>
+              <h3 className="ft">
+                Plain language, always.
+              </h3>
+              <p>
+                Scope, cost and timeline in writing before work starts. No creeping retainers.
+              </p>
+            </div>
+          </div>
+        </section>
+        {/* WHERE */}
+        <section className="sec" style={{ paddingTop: "40px" }}>
+          <div className="wrap">
+            <div className="split" style={{ marginBottom: "56px" }}>
+              <div className="rv" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                <span className="mono dim">
+                  Where we work
+                </span>
+                <h2 className="h-l">
+                  Your night is our day.
+                </h2>
+              </div>
+              <p className="lede rv">
+                We’re based in India and work remotely with US real estate investors and businesses worldwide. While your team sleeps, we’re shipping — and your agents never clock out.
+              </p>
+            </div>
+            <div className="globe zoom" role="img" aria-label="Map showing Sepnexus in Chandigarh, India, connected to clients in the United States.">
+              <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <defs>
+                  <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+                    <circle cx="11" cy="11" r="1.6" fill="rgba(255,255,255,.12)" />
+                  </pattern>
+                  <linearGradient id="arcg" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#1BA8E0" />
+                    <stop offset="50%" stopColor="#E8514C" />
+                    <stop offset="100%" stopColor="#FDBE2E" />
+                  </linearGradient>
+                  <radialGradient id="pg">
+                    <stop offset="0%" stopColor="rgba(255,255,255,.9)" />
+                    <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+                  </radialGradient>
+                </defs>
+                <rect width="1600" height="900" fill="url(#dots)" />
+                <path d="M0 300 H1600 M0 450 H1600 M0 600 H1600" stroke="rgba(255,255,255,.05)" />
+                <path className="arc-path" d="M365 300 Q753 -60 1141 330" fill="none" stroke="url(#arcg)" strokeWidth="3" strokeLinecap="round" />
+                <circle cx="365" cy="300" r="40" fill="url(#pg)" opacity=".35" />
+                <circle cx="365" cy="300" r="8" fill="#1BA8E0" />
+                <circle cx="1141" cy="330" r="40" fill="url(#pg)" opacity=".35" />
+                <circle cx="1141" cy="330" r="8" fill="#FDBE2E" />
+              </svg>
+              <div className="pin-l" style={{ left: "22.8%", top: "33.3%" }}>
+                United States
+                <small>
+                  Investors & clients
+                </small>
+              </div>
+              <div className="pin-l" style={{ left: "71.3%", top: "36.7%" }}>
+                Chandigarh, India
+                <small>
+                  Mon–Fri · 9:00–18:00 IST
+                </small>
+              </div>
+            </div>
+          </div>
+        </section>
+        {/* PROCESS */}
+        <section className="sec sec-light">
+          <div className="wrap">
+            <div className="sec-head center rv">
+              <span className="mono" style={{ color: "#86868b" }}>
+                How we work
+              </span>
+              <h2 className="h-l">
+                Four steps. No surprises.
+              </h2>
+            </div>
+            <div className="proc">
+              <div className="pstep rv">
+                <span className="mono">
+                  01
+                </span>
+                <h3>
+                  Discovery call
+                </h3>
+                <p>
+                  We learn your pipeline, your tools and where leads leak.
+                </p>
+              </div>
+              <div className="pstep rv">
+                <span className="mono">
+                  02
+                </span>
+                <h3>
+                  Written plan
+                </h3>
+                <p>
+                  Scope, cost and timeline in writing, before anything starts.
+                </p>
+              </div>
+              <div className="pstep rv">
+                <span className="mono">
+                  03
+                </span>
+                <h3>
+                  Build in the open
+                </h3>
+                <p>
+                  Short, visible steps, wired into the tools you already use.
+                </p>
+              </div>
+              <div className="pstep rv">
+                <span className="mono">
+                  04
+                </span>
+                <h3>
+                  Run & maintain
+                </h3>
+                <p>
+                  We host it, watch it and keep improving it after launch.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+        {/* STACK */}
+        <section className="sec-s">
+          <div className="wrap" style={{ marginBottom: "40px" }}>
+            <div className="split">
+              <h2 className="h-m rv">
+                The tools we know inside out.
+              </h2>
+              <p className="lede rv">
+                We build on proven platforms and the best open-source agent tooling.{" "}
+                <Link href="/#stack">
+                  See the open-source stack
+                </Link>
+                .
+              </p>
+            </div>
+          </div>
+          <div className="marq" aria-label="GoHighLevel, n8n, OpenAI, Claude, Retell AI, HubSpot, Close, Supabase, Next.js, React, Postgres, Docker, Cloudflare, MCP">
+            <div className="marq-track" aria-hidden="true">
+              <div className="marq-g">
+                <span>
+                  GoHighLevel
+                </span>
+                <span>
+                  n8n
+                </span>
+                <span>
+                  OpenAI
+                </span>
+                <span>
+                  Claude
+                </span>
+                <span>
+                  Retell AI
+                </span>
+                <span>
+                  HubSpot
+                </span>
+                <span>
+                  Close
+                </span>
+                <span>
+                  Supabase
+                </span>
+                <span>
+                  Next.js
+                </span>
+                <span>
+                  React
+                </span>
+                <span>
+                  Postgres
+                </span>
+                <span>
+                  Docker
+                </span>
+                <span>
+                  Cloudflare
+                </span>
+                <span>
+                  MCP
+                </span>
+              </div>
+              <div className="marq-g">
+                <span>
+                  GoHighLevel
+                </span>
+                <span>
+                  n8n
+                </span>
+                <span>
+                  OpenAI
+                </span>
+                <span>
+                  Claude
+                </span>
+                <span>
+                  Retell AI
+                </span>
+                <span>
+                  HubSpot
+                </span>
+                <span>
+                  Close
+                </span>
+                <span>
+                  Supabase
+                </span>
+                <span>
+                  Next.js
+                </span>
+                <span>
+                  React
+                </span>
+                <span>
+                  Postgres
+                </span>
+                <span>
+                  Docker
+                </span>
+                <span>
+                  Cloudflare
+                </span>
+                <span>
+                  MCP
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+        {/* CTA */}
+        <section className="cta">
+          <div className="cta-glow" aria-hidden="true" />
+          <div className="wrap" style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: "32px" }}>
+            <h2 className="h-xl zoom" style={{ maxWidth: "1000px" }}>
+              Let’s close{" "}
+              <span className="grad">
+                your loop.
+              </span>
+            </h2>
+            <p className="lede" style={{ maxWidth: "600px" }}>
+              We take a limited number of projects at a time. Tell us about yours.
+            </p>
+            <div className="cta-row" style={{ justifyContent: "center" }}>
+              <Link className="btn" href="/contact">
+                Start a project
+              </Link>
+            </div>
+          </div>
+        </section>
       </main>
-      <CTA />
-      <Footer />
-    </>
+      <SiteFooter />
+    </SiteShell>
   );
 }

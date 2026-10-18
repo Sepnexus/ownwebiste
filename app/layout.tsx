@@ -3,26 +3,27 @@ import { Instrument_Serif, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SiteChrome from "@/components/chrome/SiteChrome";
 
-// Self-hosted at build time: no render-blocking request to Google, and
-// metric-matched fallbacks so the big headline doesn't jump when fonts load.
+// Google Fonts, self-hosted at build time by next/font: no render-blocking
+// request, and metric-matched fallbacks so headlines don't jump on load.
+// Geist + Geist Mono are the design's faces (variable, so weights like 620/650
+// render exactly). Instrument Serif is only used by the dashboard/admin styles.
+const sans = Geist({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+const mono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
 const serif = Instrument_Serif({
   subsets: ["latin"],
   weight: "400",
   style: ["normal", "italic"],
   variable: "--font-serif",
   display: "swap",
-});
-const sans = Geist({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-sans",
-  display: "swap",
-});
-const mono = Geist_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-mono",
-  display: "swap",
+  preload: false,
 });
 
 export const viewport: Viewport = {
@@ -30,8 +31,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   interactiveWidget: "resizes-content",
-  themeColor: "#f6f3ec",
-  colorScheme: "light",
+  themeColor: "#000000",
+  colorScheme: "dark",
 };
 
 export const metadata: Metadata = {

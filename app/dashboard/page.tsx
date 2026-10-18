@@ -52,6 +52,8 @@ export default async function DashboardPage({
     (s) =>
       s.sub.razorpaySubscriptionId &&
       ["created", "pending", "authenticated"].includes(s.sub.status) &&
+      // Server component, rendered per request: reading the clock here is intended.
+      // eslint-disable-next-line react-hooks/purity
       (Date.now() - new Date(s.sub.updatedAt).getTime()) / 1000 > 5,
   );
   if (stale.length > 0) {

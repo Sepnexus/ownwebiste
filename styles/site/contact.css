@@ -1,0 +1,4 @@
+
+:where(.sx.pg-contact) .next{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+:where(.sx.pg-contact) .exist{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;padding:32px 36px;border-radius:28px;background:#111113;border:1px solid var(--line)}
+@container page (max-width: 1060px){:where(.sx.pg-contact) .next{grid-template-columns:minmax(0,1fr)}}
